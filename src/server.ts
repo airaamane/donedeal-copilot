@@ -1,6 +1,7 @@
 // Bun HTTP server for the car-audit backend.
 //   POST /audit   { profile, url }  -> Audit JSON
 //   GET  /health                    -> { ok: true }
+//   GET  /                          -> local test console (public/index.html)
 // Stateless; auth via a shared X-API-Key header (AUDIT_API_KEY env var).
 
 import { timingSafeEqual } from "node:crypto";
@@ -84,6 +85,13 @@ export async function handleRequest(
 
   if (req.method === "GET" && url.pathname === "/health") {
     return json({ ok: true }, 200);
+  }
+
+  // Local test console (open http://localhost:<port>/ in a browser).
+  if (req.method === "GET" && url.pathname === "/") {
+    return new Response(Bun.file(`${import.meta.dir}/../public/index.html`), {
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
   }
 
   if (req.method === "POST" && url.pathname === "/audit") {
