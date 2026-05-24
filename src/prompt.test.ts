@@ -55,10 +55,15 @@ describe("AUDIT_SCHEMA", () => {
       "verdict",
       "score",
       "summary",
-      "greenFlags",
-      "redFlags",
-      "watchFor",
+      "fitChips",
+      "listingSnapshot",
+      "assessment",
+      "modelYearNotes",
+      "alternatives",
     ]);
     expect(AUDIT_SCHEMA.properties.verdict.enum).toContain("good_fit");
+    expect(AUDIT_SCHEMA.properties.alternatives.items.properties.sameModelNewerYear.type).toBe(
+      "boolean",
+    );
   });
 });

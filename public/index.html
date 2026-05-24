@@ -99,21 +99,32 @@
       }
       .verdict .summary { margin: 8px 0 0; color: var(--ink); }
 
+      .snapshot { color: var(--muted); font-size: 13.5px; margin: 14px 0 4px; font-style: italic; }
+
+      .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+      .chip {
+        font-size: 12.5px; font-weight: 600; padding: 5px 11px; border-radius: 999px;
+        border: 1px solid transparent;
+      }
+      .chip.match    { background: #e6f4ea; color: #1e6b30; }
+      .chip.mismatch { background: #fce8e6; color: #b3261e; }
+      .chip.neutral  { background: #f1f3f4; color: #5f6368; }
+
       .flags h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin: 22px 0 10px; }
+      .star { color: var(--blue); }
       .item {
         border: 1px solid var(--line); border-left-width: 4px; border-radius: 8px;
         padding: 10px 12px; margin-bottom: 8px;
       }
       .item .t { font-weight: 600; font-size: 14px; }
       .item .d { font-size: 13.5px; color: var(--muted); margin-top: 2px; }
-      .item.green { border-left-color: var(--green); }
-      .item.red { border-left-color: var(--red); }
-      .item.watch { border-left-color: var(--amber); }
-      .sev { font-size: 11px; font-weight: 600; padding: 1px 7px; border-radius: 999px; margin-left: 8px; vertical-align: middle; }
-      .sev.low { background: #fef7e0; color: #b06000; }
-      .sev.medium { background: #fde9e6; color: #b3261e; }
-      .sev.high { background: var(--red); color: #fff; }
-      .hist { display: inline-block; font-size: 11.5px; font-weight: 600; color: #7a4f01; background: #fff4d6; padding: 2px 9px; border-radius: 999px; margin-top: 6px; }
+      .item.assess { border-left-color: var(--blue); }
+      .item.year { border-left-color: #9334e6; }
+      .item.alt { border-left-color: var(--green); }
+      .alt-tag {
+        font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 999px;
+        margin-left: 8px; vertical-align: middle; background: #e8f0fe; color: #1967d2;
+      }
     </style>
   </head>
   <body>
@@ -215,15 +226,25 @@
         const v = VERDICT[audit.verdict] || { label: audit.verdict, color: "#5f6368" };
         const score = Math.max(0, Math.min(100, Number(audit.score) || 0));
 
-        const items = (arr, cls) => (arr || []).map((f) => `
+        const chips = (audit.fitChips || []).map((c) =>
+          `<span class="chip ${c.status}">${esc(c.label)}</span>`).join("");
+        const chipsBlock = chips ? `<div class="chips">${chips}</div>` : "";
+
+        const insights = (arr, cls) => (arr || []).map((f) => `
           <div class="item ${cls}">
-            <div class="t">${esc(f.title)}${f.severity ? `<span class="sev ${f.severity}">${f.severity}</span>` : ""}</div>
+            <div class="t">${esc(f.title)}</div>
             <div class="d">${esc(f.detail)}</div>
-            ${f.suggestHistoryCheck ? `<div class="hist">🔍 Worth a paid history check</div>` : ""}
           </div>`).join("");
 
-        const section = (title, arr, cls) =>
-          (arr && arr.length) ? `<div class="flags"><h3>${title}</h3>${items(arr, cls)}</div>` : "";
+        const insightSection = (title, arr, cls) =>
+          (arr && arr.length) ? `<div class="flags"><h3><span class="star">★</span> ${title}</h3>${insights(arr, cls)}</div>` : "";
+
+        const alts = (audit.alternatives || []).map((a) => `
+          <div class="item alt">
+            <div class="t">${esc(a.car)}<span class="alt-tag">${a.sameModelNewerYear ? "newer year" : "different car"}</span></div>
+            <div class="d">${esc(a.reason)}</div>
+          </div>`).join("");
+        const altSection = alts ? `<div class="flags"><h3><span class="star">★</span> Better options</h3>${alts}</div>` : "";
 
         $("result").innerHTML = `
           <div class="card">
@@ -236,9 +257,11 @@
                 <p class="summary">${esc(audit.summary || "")}</p>
               </div>
             </div>
-            ${section("Green flags", audit.greenFlags, "green")}
-            ${section("Red flags", audit.redFlags, "red")}
-            ${section("Watch for / ask the seller", audit.watchFor, "watch")}
+            ${chipsBlock}
+            ${audit.listingSnapshot ? `<p class="snapshot">${esc(audit.listingSnapshot)}</p>` : ""}
+            ${insightSection("Assessment", audit.assessment, "assess")}
+            ${insightSection("This model year", audit.modelYearNotes, "year")}
+            ${altSection}
           </div>`;
         $("result").style.display = "block";
       }

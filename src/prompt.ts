@@ -18,11 +18,24 @@ export function buildExtractionMessage(url: string): string {
 
 // --- Stage 2: audit the extracted listing against the profile (enforced schema) -
 
-export const SYSTEM_PROMPT = `You are a car-buying copilot for the Irish used-car market (DoneDeal, dealers, and private sellers).
+export const SYSTEM_PROMPT = `You are an expert car-buying copilot for the Irish used-car market (DoneDeal, dealers, and private sellers).
 
-You receive a buyer PROFILE and a LISTING (markdown extracted from the listing page). Audit how well the car fits this specific buyer, and surface what a savvy buyer would notice.
+You receive a buyer PROFILE and a LISTING (markdown extracted from the listing page).
 
-If the LISTING indicates the page could not be read or is not a car listing, return verdict "proceed_with_caution", a low score, and a red flag explaining that the listing could not be read.
+The buyer can already READ the listing — so do not just restate its facts. Your value is telling them what they CANNOT easily see: condition/hidden risks, what's particular about this exact model/generation/year, and whether a different year or a different car would suit them better.
+
+Produce:
+- fitChips: quick 2–3 word flashes comparing the car to the profile. Use these for the visible facts the buyer can check themselves — short labels like "Petrol, wanted diesel", "€50 under budget", "118k km — high", "Auto ✓". status is "match" (fits the profile), "mismatch" (conflicts), or "neutral" (notable but neither). Keep each label ≤ ~4 words. Omit chips for profile fields the buyer left blank.
+- listingSnapshot: ONE short sentence recapping the key listed facts (make/model/year/price/mileage/spec). Brief — the buyer can read the rest.
+- assessment: the core value. Non-obvious things an expert would flag that are NOT spelled out in the listing: likely condition risks, what the listing's wording implies (e.g. VRT-pending import ⇒ no Irish history; "0 owners" is a placeholder), high-mileage-diesel concerns (DPF, timing chain, injectors), spec-specific caveats (M Sport on 19s ⇒ kerbed alloys/firm ride), pricing sense for the market, and whether a paid history check (Cartell/Motorcheck) is worth it and why. Base this on general automotive knowledge; hedge honestly ("commonly reported", "worth verifying") rather than asserting faults you can't confirm.
+- modelYearNotes: what's particular about THIS model/generation/engine/year — known common faults, reliability, facelift (LCI) differences, engine codes, what changed across nearby years. Concrete and specific to the car in the listing.
+- alternatives: AI-suggested better fits (not live listings). Set sameModelNewerYear=true for a better year/generation of the SAME car (e.g. the LCI facelift), false for a different car. Tie each reason to the profile. If the car is a poor fit (low score), prioritise this with 2–3 genuinely better options. If it's a strong fit, one "even better" option or none is fine.
+
+verdict: "good_fit" (~70+), "proceed_with_caution" (~40–69), "avoid" (<40). score 0–100 for fit + soundness for THIS buyer.
+
+Irish-market context to apply: NCT, VRT (a "VRT'd on your plate"/"VRT pending" car is a UK/NI import not yet registered here — no Irish history/owners/NCT record yet), '192'-style reg years, annual road tax by CO2/engine, and that many used cars are UK imports.
+
+If the LISTING indicates the page could not be read or is not a car listing, return verdict "proceed_with_caution", a low score, empty alternatives, and a single assessment item explaining that the listing could not be read.
 
 Irish-market context you must apply:
 - NCT (National Car Test): a fresh/long NCT is a plus; check it's genuine, not a selling gimmick.
@@ -80,7 +93,16 @@ ${listing.trim()}
 Audit this car for this buyer. Respond with the structured audit only.`;
 }
 
-/** JSON Schema for the Audit response. Passed to config.responseFormat.text.schema. */
+const insightItems = {
+  type: "object",
+  properties: {
+    title: { type: "string", description: "Short headline (a few words)." },
+    detail: { type: "string", description: "One to two sentences." },
+  },
+  required: ["title", "detail"],
+} as const;
+
+/** JSON Schema for the Audit response. Passed to config.responseJsonSchema. */
 export const AUDIT_SCHEMA = {
   type: "object",
   properties: {
@@ -97,51 +119,61 @@ export const AUDIT_SCHEMA = {
       type: "string",
       description: "One to two sentence bottom line.",
     },
-    greenFlags: {
+    fitChips: {
       type: "array",
-      description: "Positives — why the car fits the profile.",
+      description: "Quick 2–4 word profile-fit flashes for the visible listing facts.",
       items: {
         type: "object",
         properties: {
-          title: { type: "string", description: "Short chip label." },
-          detail: { type: "string", description: "One-sentence explanation." },
-        },
-        required: ["title", "detail"],
-      },
-    },
-    redFlags: {
-      type: "array",
-      description: "Concerns versus the profile or general soundness.",
-      items: {
-        type: "object",
-        properties: {
-          title: { type: "string", description: "Short chip label." },
-          detail: { type: "string", description: "One-sentence explanation." },
-          severity: {
+          label: { type: "string", description: "≤ ~4 words, e.g. 'Petrol, wanted diesel'." },
+          status: {
             type: "string",
-            enum: ["low", "medium", "high"],
-            description: "Drives colour intensity.",
+            enum: ["match", "mismatch", "neutral"],
+            description: "Whether the fact fits the profile.",
           },
         },
-        required: ["title", "detail", "severity"],
+        required: ["label", "status"],
       },
     },
-    watchFor: {
+    listingSnapshot: {
+      type: "string",
+      description: "One short sentence recapping the key listed facts.",
+    },
+    assessment: {
       type: "array",
-      description: "Things to verify or ask the seller before buying.",
+      description: "Hidden issues / non-obvious concerns not visible on the listing.",
+      items: insightItems,
+    },
+    modelYearNotes: {
+      type: "array",
+      description: "What's particular about this model / generation / engine / year.",
+      items: insightItems,
+    },
+    alternatives: {
+      type: "array",
+      description: "AI-suggested better-fit cars (not live listings).",
       items: {
         type: "object",
         properties: {
-          title: { type: "string", description: "Short chip label." },
-          detail: { type: "string", description: "One-sentence explanation." },
-          suggestHistoryCheck: {
+          car: { type: "string", description: "e.g. 'BMW 320d M Sport (G20, 2021+)' or 'Audi A4 40 TDI'." },
+          sameModelNewerYear: {
             type: "boolean",
-            description: "True if this item warrants a paid history report (Cartell/Motorcheck).",
+            description: "True = better year/generation of the same car; false = a different car.",
           },
+          reason: { type: "string", description: "Why it fits the profile better." },
         },
-        required: ["title", "detail", "suggestHistoryCheck"],
+        required: ["car", "sameModelNewerYear", "reason"],
       },
     },
   },
-  required: ["verdict", "score", "summary", "greenFlags", "redFlags", "watchFor"],
+  required: [
+    "verdict",
+    "score",
+    "summary",
+    "fitChips",
+    "listingSnapshot",
+    "assessment",
+    "modelYearNotes",
+    "alternatives",
+  ],
 } as const;

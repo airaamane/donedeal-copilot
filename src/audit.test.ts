@@ -16,15 +16,22 @@ const validAudit: Audit = {
   verdict: "proceed_with_caution",
   score: 62,
   summary: "Solid spec for the budget, but it's a UK import with no Irish history yet.",
-  greenFlags: [{ title: "Within budget", detail: "€29,950 is under the €30k cap." }],
-  redFlags: [
-    { title: "High mileage", detail: "118,000 km is on the higher side.", severity: "medium" },
+  fitChips: [
+    { label: "€50 under budget", status: "match" },
+    { label: "118k km — high", status: "neutral" },
   ],
-  watchFor: [
+  listingSnapshot: "2019 BMW 320d xDrive M Sport, 118k km, €29,950 at a Cork dealer.",
+  assessment: [
+    { title: "No Irish history", detail: "VRT-pending import — worth a Cartell/Motorcheck report." },
+  ],
+  modelYearNotes: [
+    { title: "G20 B47 engine", detail: "Generally reliable; pre-LCI infotainment is older." },
+  ],
+  alternatives: [
     {
-      title: "Import history",
-      detail: "VRT-pending import — confirm UK mileage.",
-      suggestHistoryCheck: true,
+      car: "BMW 320d M Sport (G20, 2021+ LCI)",
+      sameModelNewerYear: true,
+      reason: "Facelift improves infotainment and adds mild-hybrid for the same use.",
     },
   ],
 };
@@ -157,8 +164,10 @@ describe("isAudit", () => {
 
   test("rejects bad verdict, missing arrays, and non-objects", () => {
     expect(isAudit({ ...validAudit, verdict: "nope" })).toBe(false);
-    expect(isAudit({ ...validAudit, greenFlags: "x" })).toBe(false);
+    expect(isAudit({ ...validAudit, assessment: "x" })).toBe(false);
     expect(isAudit({ ...validAudit, score: "high" })).toBe(false);
+    expect(isAudit({ ...validAudit, fitChips: [{ label: "x" }] })).toBe(false);
+    expect(isAudit({ ...validAudit, alternatives: [{ car: "x" }] })).toBe(false);
     expect(isAudit(null)).toBe(false);
   });
 });

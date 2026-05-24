@@ -23,26 +23,38 @@ export interface AuditRequest {
 }
 
 export type Verdict = "good_fit" | "proceed_with_caution" | "avoid";
-export type Severity = "low" | "medium" | "high";
 
-export interface Flag {
-  title: string; // short chip label, e.g. "Within budget"
-  detail: string; // one-sentence explanation
-  severity?: Severity; // red flags only — drives colour intensity
+/** A quick 2–3 word profile-fit flash, e.g. "Petrol, wanted diesel". */
+export interface FitChip {
+  label: string;
+  status: "match" | "mismatch" | "neutral";
 }
 
-export interface WatchItem {
+/** A short headline + explanation for an AI insight. */
+export interface Insight {
   title: string;
   detail: string;
-  suggestHistoryCheck?: boolean; // mark items worth a paid Cartell/Motorcheck report
 }
 
-/** Structured audit returned to the extension. */
+/** A suggested better-fit car (AI-suggested, not a live listing). */
+export interface Alternative {
+  car: string; // e.g. "BMW 320d M Sport (G20, 2021+)" or "Audi A4 40 TDI"
+  sameModelNewerYear: boolean; // true = better year of the same car; false = a different car
+  reason: string; // why it fits the profile better
+}
+
+/**
+ * Structured audit returned to the extension. The value is in what the buyer
+ * CAN'T easily see: condition/hidden issues, model-year particulars, and
+ * better-fit alternatives. Visible listing facts are condensed into quick chips.
+ */
 export interface Audit {
   verdict: Verdict; // category for the gauge label
   score: number; // 0–100, drives the gauge needle
   summary: string; // 1–2 sentence bottom line
-  greenFlags: Flag[]; // render green
-  redFlags: Flag[]; // render red, shaded by severity
-  watchFor: WatchItem[]; // "ask the seller / verify" items
+  fitChips: FitChip[]; // quick profile match/mismatch flashes
+  listingSnapshot: string; // brief recap of what's in the listing (kept short)
+  assessment: Insight[]; // hidden issues / non-obvious concerns not visible on the listing
+  modelYearNotes: Insight[]; // what's particular about this model / generation / year
+  alternatives: Alternative[]; // better year of the same car, and/or similar better-fit cars
 }

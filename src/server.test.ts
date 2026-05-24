@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { handleRequest, type ServerDeps } from "./server.ts";
 import { AuditError } from "./audit.ts";
+import { DailyRateLimiter } from "./ratelimit.ts";
 import type { Audit } from "./types.ts";
 
 // Keep auth hermetic: default to dev mode (no key); tests opt into auth explicitly.
@@ -12,9 +13,11 @@ const sampleAudit: Audit = {
   verdict: "good_fit",
   score: 80,
   summary: "Great fit.",
-  greenFlags: [],
-  redFlags: [],
-  watchFor: [],
+  fitChips: [],
+  listingSnapshot: "2019 BMW 320d.",
+  assessment: [],
+  modelYearNotes: [],
+  alternatives: [],
 };
 
 const okDeps: ServerDeps = { runAudit: async () => sampleAudit };
@@ -86,6 +89,59 @@ describe("handleRequest", () => {
       failingDeps,
     );
     expect(res.status).toBe(502);
+  });
+
+  test("400 when the url host is not an allowed listing site", async () => {
+    const res = await handleRequest(
+      post({ profile: {}, url: "https://example.com/cars/123" }),
+      okDeps,
+    );
+    expect(res.status).toBe(400);
+  });
+
+  test("allows autotrader.ie listings", async () => {
+    const res = await handleRequest(
+      post({ profile: {}, url: "https://www.autotrader.ie/car-details/123" }),
+      okDeps,
+    );
+    expect(res.status).toBe(200);
+  });
+
+  test("429 once the per-IP daily limit is exceeded", async () => {
+    const deps: ServerDeps = {
+      runAudit: async () => sampleAudit,
+      rateLimiter: new DailyRateLimiter({ limit: 2 }),
+    };
+    const call = () => handleRequest(post({ profile: {}, url: VALID_URL }), deps);
+    expect((await call()).status).toBe(200);
+    expect((await call()).status).toBe(200);
+    const limited = await call();
+    expect(limited.status).toBe(429);
+    expect(limited.headers.get("Retry-After")).toBeTruthy();
+  });
+
+  test("rate limit is tracked per client IP behind a trusted proxy", async () => {
+    process.env.TRUST_PROXY = "1";
+    try {
+      const deps: ServerDeps = {
+        runAudit: async () => sampleAudit,
+        rateLimiter: new DailyRateLimiter({ limit: 1 }),
+      };
+      const fromIp = (ip: string) =>
+        handleRequest(
+          new Request("http://localhost/audit", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "X-Forwarded-For": ip },
+            body: JSON.stringify({ profile: {}, url: VALID_URL }),
+          }),
+          deps,
+        );
+      expect((await fromIp("1.1.1.1")).status).toBe(200);
+      expect((await fromIp("1.1.1.1")).status).toBe(429); // same IP, over limit
+      expect((await fromIp("2.2.2.2")).status).toBe(200); // different IP, fresh window
+    } finally {
+      delete process.env.TRUST_PROXY;
+    }
   });
 
   test("404 for unknown routes", async () => {

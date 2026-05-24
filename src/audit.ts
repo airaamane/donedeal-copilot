@@ -207,20 +207,36 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 
 const VERDICTS = ["good_fit", "proceed_with_caution", "avoid"];
 
-function isFlagLike(v: unknown): boolean {
-  if (typeof v !== "object" || v === null) return false;
-  const f = v as Record<string, unknown>;
-  return typeof f.title === "string" && typeof f.detail === "string";
+function isObject(v: unknown): v is Record<string, unknown> {
+  return typeof v === "object" && v !== null && !Array.isArray(v);
+}
+
+function isInsight(v: unknown): boolean {
+  return isObject(v) && typeof v.title === "string" && typeof v.detail === "string";
+}
+
+function isFitChip(v: unknown): boolean {
+  return isObject(v) && typeof v.label === "string" && typeof v.status === "string";
+}
+
+function isAlternative(v: unknown): boolean {
+  return (
+    isObject(v) &&
+    typeof v.car === "string" &&
+    typeof v.sameModelNewerYear === "boolean" &&
+    typeof v.reason === "string"
+  );
 }
 
 export function isAudit(v: unknown): v is Audit {
-  if (typeof v !== "object" || v === null) return false;
-  const a = v as Record<string, unknown>;
-  if (typeof a.verdict !== "string" || !VERDICTS.includes(a.verdict)) return false;
-  if (typeof a.score !== "number" || Number.isNaN(a.score)) return false;
-  if (typeof a.summary !== "string") return false;
-  if (!Array.isArray(a.greenFlags) || !a.greenFlags.every(isFlagLike)) return false;
-  if (!Array.isArray(a.redFlags) || !a.redFlags.every(isFlagLike)) return false;
-  if (!Array.isArray(a.watchFor) || !a.watchFor.every(isFlagLike)) return false;
+  if (!isObject(v)) return false;
+  if (typeof v.verdict !== "string" || !VERDICTS.includes(v.verdict)) return false;
+  if (typeof v.score !== "number" || Number.isNaN(v.score)) return false;
+  if (typeof v.summary !== "string") return false;
+  if (typeof v.listingSnapshot !== "string") return false;
+  if (!Array.isArray(v.fitChips) || !v.fitChips.every(isFitChip)) return false;
+  if (!Array.isArray(v.assessment) || !v.assessment.every(isInsight)) return false;
+  if (!Array.isArray(v.modelYearNotes) || !v.modelYearNotes.every(isInsight)) return false;
+  if (!Array.isArray(v.alternatives) || !v.alternatives.every(isAlternative)) return false;
   return true;
 }

@@ -59,7 +59,16 @@ Response: application/json  (single structured Audit object — see schema below
   startup warning). See `.env.example` for the key-generation command.
 - **CORS:** `ALLOWED_ORIGIN` env var (default `*`); lock to the extension origin
   once its ID is known.
-- **Validation:** `url` must be a valid http(s) URL; `profile` must be an object.
+- **Validation:** `url` must be a valid http(s) URL whose host is on the listing
+  allow-list (`ALLOWED_LISTING_HOSTS`, default `donedeal.ie`, `autotrader.ie`,
+  `autotrader.co.uk`, subdomains included; `*` allows any host); `profile` must be
+  an object.
+- **Rate limit:** per-IP fixed-window limiter (`RATE_LIMIT_PER_DAY`, default 25;
+  `RATE_LIMIT_WINDOW_MS`, default 24h; `0` disables). Checked after validation and
+  before the Gemini calls, so only valid, allowed-host audit attempts count
+  (including cache hits). Over-limit requests get `429` with `Retry-After` and
+  `X-RateLimit-*` headers. Behind a proxy, set `TRUST_PROXY` so the client IP is
+  read from `X-Forwarded-For` rather than the shared proxy socket IP.
 
 ## Profile schema
 
@@ -84,39 +93,47 @@ interface Profile {
 ## Audit output
 
 A single **structured JSON** object, generated via Gemini's JSON mode — not
-streamed. The response UI is animated and dynamic (a score
-gauge, colour-coded pros/cons, chips embedded into the DoneDeal page), so it
-needs typed fields rather than prose.
+streamed. The response UI is animated and dynamic (a score gauge, quick fit
+chips, and AI insight sections), so it needs typed fields rather than prose.
+
+**Value principle:** the buyer can already read the listing, so the audit does
+not restate it. Visible facts are condensed into quick chips; the substance is
+what the buyer *can't* easily see — condition/hidden risks, model-year
+particulars, and better-fit alternatives.
 
 ```ts
-type Verdict   = "good_fit" | "proceed_with_caution" | "avoid"
-type Severity  = "low" | "medium" | "high"
+type Verdict = "good_fit" | "proceed_with_caution" | "avoid"
 
-interface Flag {
-  title: string        // short chip label, e.g. "Within budget"
-  detail: string       // one-sentence explanation
-  severity?: Severity  // red flags only — drives colour intensity
+interface FitChip {                 // quick 2–4 word profile flashes
+  label: string                     // "Petrol, wanted diesel" · "€50 under budget"
+  status: "match" | "mismatch" | "neutral"
 }
-
-interface WatchItem {
-  title: string
-  detail: string
-  suggestHistoryCheck?: boolean   // mark items worth a paid Cartell/Motorcheck report
+interface Insight { title: string; detail: string }
+interface Alternative {
+  car: string                       // "BMW 320d M Sport (G20, 2021+)" · "Audi A4 40 TDI"
+  sameModelNewerYear: boolean       // true = better year of the same car; false = different car
+  reason: string                    // why it fits the profile better
 }
 
 interface Audit {
-  verdict: Verdict      // category for the gauge label
-  score: number         // 0–100, drives the gauge needle
-  summary: string       // 1–2 sentence bottom line
-  greenFlags: Flag[]    // render green
-  redFlags: Flag[]      // render red, shaded by severity
-  watchFor: WatchItem[] // "ask the seller / verify" items
+  verdict: Verdict                  // gauge label
+  score: number                     // 0–100, gauge needle
+  summary: string                   // bottom line
+  fitChips: FitChip[]               // quick profile match/mismatch flashes (visible facts)
+  listingSnapshot: string           // ONE short sentence recapping the listed facts
+  assessment: Insight[]             // ★ hidden issues / non-obvious concerns not on the listing
+  modelYearNotes: Insight[]         // ★ what's particular about this model / generation / year
+  alternatives: Alternative[]       // ★ better year of same car, and/or similar better-fit cars
 }
 ```
 
-UI mapping: `score` + `verdict` → gauge; `greenFlags` / `redFlags` → colour-coded
-lists (red shaded by `severity`); `watchFor[].suggestHistoryCheck` → a "worth a
-paid history check" prompt where relevant.
+- **Alternatives are AI-suggested** (from Gemini's car knowledge), not live
+  listings. A search-grounded version (real current listings) is a future step
+  that would need an extra search stage.
+- UI mapping: `score` + `verdict` → gauge; `fitChips` → coloured chip row;
+  `listingSnapshot` → one muted line; `assessment` / `modelYearNotes` /
+  `alternatives` → the three primary insight sections (`sameModelNewerYear` tags
+  "newer year" vs "different car").
 
 ## Gemini call
 
@@ -132,10 +149,12 @@ paid history check" prompt where relevant.
   - Output is run through a code-fence stripper before `JSON.parse` (the model
     occasionally wraps JSON in ```` ```json ````), then validated against the
     `Audit` shape; invalid output → `AuditError`.
-- **Irish-market-aware** audit system prompt: understands NCT, VRT, annual road
-  tax, '192'-style registration years, owner/history conventions, dealer vs
-  private. Sets `suggestHistoryCheck` when listing signals warrant it (UK import,
-  VRT-pending, 0-owner with pending history).
+- **Irish-market-aware, expert** audit system prompt: understands NCT, VRT,
+  annual road tax, '192'-style registration years, owner/history conventions,
+  dealer vs private. Focuses on non-obvious insight (condition risks, model-year
+  particulars, alternatives) rather than restating the listing, and recommends a
+  paid history check within `assessment` when warranted (UK import, VRT-pending,
+  0-owner with pending history).
 
 ## Caching
 
@@ -155,13 +174,16 @@ paid history check" prompt where relevant.
 - `src/prompt.ts` — extraction + audit system prompts, profile/message formatting,
   `AUDIT_SCHEMA`
 - `src/cache.ts` — `TtlCache` + `auditCacheKey`
+- `src/ratelimit.ts` — `DailyRateLimiter` (per-IP fixed-window request limiter)
 - `src/types.ts` — `Profile`, `AuditRequest`, `Audit` (and `Flag` / `WatchItem`) types
 - `.env.example` — documents `GEMINI_API_KEY`, `AUDIT_API_KEY`, and optional vars
 
 ## Error handling
 
-- `400` — missing/invalid `url` (must be http(s)) or non-object `profile`
+- `400` — missing/invalid `url` (must be http(s)), disallowed listing host, or
+  non-object `profile`
 - `401` — missing or wrong `X-API-Key` (when `AUDIT_API_KEY` is set)
+- `429` — per-IP daily request limit reached (with `Retry-After` header)
 - `502` — Gemini call failure, empty/non-JSON output, or schema-invalid output;
   returned as a JSON error body
 - Per-stage timeout guard (45s read, 30s audit)
@@ -178,6 +200,9 @@ paid history check" prompt where relevant.
 
 - No database, no profile storage, no accounts.
 - No shared/persistent cache (the in-memory cache above is process-local).
-- No rate limiting beyond the shared API key.
-- No multi-site adapters yet — v0 targets DoneDeal-style listings; the URL-in
-  contract keeps it site-agnostic (subject to the urlContext trade-off above).
+- Rate limiting and the host allow-list are process-local too — limits are
+  enforced per instance, so horizontal scaling needs a shared store (e.g. Redis)
+  to enforce a global per-IP limit.
+- No multi-site adapters yet — the URL-in contract keeps it site-agnostic, but the
+  allow-list restricts hosts to the supported listing sites (extend via
+  `ALLOWED_LISTING_HOSTS`), subject to the urlContext trade-off above.

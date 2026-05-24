@@ -6,6 +6,7 @@
 
 import { timingSafeEqual } from "node:crypto";
 import { AuditError, runAuditCached, type RunAuditOptions } from "./audit.ts";
+import { DailyRateLimiter, type RateLimitResult } from "./ratelimit.ts";
 import type { Audit, AuditRequest, Profile } from "./types.ts";
 
 class BadRequestError extends Error {}
@@ -23,13 +24,19 @@ function corsHeaders(): Record<string, string> {
     "Access-Control-Allow-Origin": process.env.ALLOWED_ORIGIN ?? "*",
     "Access-Control-Allow-Methods": "POST, GET, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type, X-API-Key",
+    "Access-Control-Expose-Headers":
+      "Retry-After, X-RateLimit-Limit, X-RateLimit-Remaining, X-RateLimit-Reset",
   };
 }
 
-function json(body: unknown, status: number): Response {
+function json(
+  body: unknown,
+  status: number,
+  extraHeaders: Record<string, string> = {},
+): Response {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { "Content-Type": "application/json", ...corsHeaders() },
+    headers: { "Content-Type": "application/json", ...corsHeaders(), ...extraHeaders },
   });
 }
 
@@ -52,6 +59,9 @@ function validateBody(raw: unknown): AuditRequest {
   if (typeof url !== "string" || !isHttpUrl(url)) {
     throw new BadRequestError("`url` must be a valid http(s) URL");
   }
+  if (!isAllowedListingUrl(url)) {
+    throw new BadRequestError("`url` host is not a supported listing site");
+  }
   if (typeof profile !== "object" || profile === null || Array.isArray(profile)) {
     throw new BadRequestError("`profile` must be an object");
   }
@@ -67,15 +77,90 @@ function isHttpUrl(value: string): boolean {
   }
 }
 
+// --- Listing-site allow-list -------------------------------------------------
+
+const DEFAULT_ALLOWED_HOSTS = ["donedeal.ie", "autotrader.ie", "autotrader.co.uk"];
+
+/** Parsed ALLOWED_LISTING_HOSTS, or null when set to "*" (any host allowed). */
+function parseAllowedHosts(): string[] | null {
+  const raw = process.env.ALLOWED_LISTING_HOSTS?.trim();
+  if (!raw) return DEFAULT_ALLOWED_HOSTS;
+  if (raw === "*") return null;
+  return raw.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
+}
+
+/** True if `value`'s host is an allowed listing site (or a subdomain of one). */
+function isAllowedListingUrl(value: string): boolean {
+  const hosts = parseAllowedHosts();
+  if (hosts === null) return true;
+  let host: string;
+  try {
+    host = new URL(value).hostname.toLowerCase();
+  } catch {
+    return false;
+  }
+  return hosts.some((h) => host === h || host.endsWith(`.${h}`));
+}
+
+// --- Per-IP daily rate limit -------------------------------------------------
+
+function intEnv(name: string, fallback: number): number {
+  const raw = process.env[name];
+  if (raw === undefined || raw.trim() === "") return fallback;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : fallback;
+}
+
+const defaultRateLimiter = new DailyRateLimiter({
+  limit: intEnv("RATE_LIMIT_PER_DAY", 25),
+  windowMs: intEnv("RATE_LIMIT_WINDOW_MS", 86_400_000),
+});
+
+/**
+ * Best-effort client IP for rate limiting. Behind a trusted proxy (TRUST_PROXY
+ * set) the socket IP is the proxy's, so use the X-Forwarded-For entry the proxy
+ * appended (rightmost — spoof-resistant for a single hop); otherwise use the
+ * socket peer IP. Falls back to "unknown" so a missing IP still shares a bucket.
+ */
+function clientIp(req: Request, socketIp?: string): string {
+  if (process.env.TRUST_PROXY) {
+    const xff = req.headers.get("x-forwarded-for");
+    if (xff) {
+      const parts = xff.split(",").map((s) => s.trim()).filter(Boolean);
+      const last = parts[parts.length - 1];
+      if (last) return last;
+    }
+    const real = req.headers.get("x-real-ip");
+    if (real && real.trim()) return real.trim();
+  }
+  return socketIp ?? "unknown";
+}
+
+/** Rate-limit response headers (X-RateLimit-* always; Retry-After when blocked). */
+function rateLimitHeaders(rl: RateLimitResult): Record<string, string> {
+  const headers: Record<string, string> = {};
+  if (Number.isFinite(rl.remaining)) {
+    headers["X-RateLimit-Limit"] = String(rl.limit);
+    headers["X-RateLimit-Remaining"] = String(rl.remaining);
+    headers["X-RateLimit-Reset"] = String(Math.ceil(rl.resetAt / 1000));
+  }
+  if (!rl.allowed) {
+    headers["Retry-After"] = String(Math.max(1, Math.ceil(rl.retryAfterMs / 1000)));
+  }
+  return headers;
+}
+
 // Injectable deps so tests can stub the (cached) Gemini call.
 export interface ServerDeps {
   runAudit: (profile: Profile, url: string, opts?: RunAuditOptions) => Promise<Audit>;
+  rateLimiter?: DailyRateLimiter;
 }
-const defaultDeps: ServerDeps = { runAudit: runAuditCached };
+const defaultDeps: ServerDeps = { runAudit: runAuditCached, rateLimiter: defaultRateLimiter };
 
 export async function handleRequest(
   req: Request,
   deps: ServerDeps = defaultDeps,
+  socketIp?: string,
 ): Promise<Response> {
   const url = new URL(req.url);
 
@@ -112,9 +197,15 @@ export async function handleRequest(
       return json({ error: (err as Error).message }, 400);
     }
 
+    const rateLimiter = deps.rateLimiter ?? defaultRateLimiter;
+    const rl = rateLimiter.consume(clientIp(req, socketIp));
+    if (!rl.allowed) {
+      return json({ error: "daily request limit reached" }, 429, rateLimitHeaders(rl));
+    }
+
     try {
       const audit = await deps.runAudit(body.profile, body.url);
-      return json(audit, 200);
+      return json(audit, 200, rateLimitHeaders(rl));
     } catch (err) {
       if (err instanceof AuditError) {
         console.error("audit failed:", err.message, err.cause ?? "");
@@ -136,7 +227,7 @@ if (import.meta.main) {
   }
   const server = Bun.serve({
     port: Number(process.env.PORT ?? 8787),
-    fetch: (req) => handleRequest(req),
+    fetch: (req, srv) => handleRequest(req, defaultDeps, srv.requestIP(req)?.address),
   });
   console.log(`car-audit backend listening on ${server.url}`);
 }
