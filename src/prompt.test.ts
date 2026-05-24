@@ -66,4 +66,13 @@ describe("AUDIT_SCHEMA", () => {
       "boolean",
     );
   });
+
+  test("carries the price-tracking vehicle block and priceEur (not required)", () => {
+    expect(AUDIT_SCHEMA.properties.vehicle.type).toBe("object");
+    expect(AUDIT_SCHEMA.properties.vehicle.required).toEqual(["make", "model", "year"]);
+    expect(AUDIT_SCHEMA.properties.priceEur.type).toBe("number");
+    // kept out of the top-level required list so POA / non-car pages still validate
+    expect(AUDIT_SCHEMA.required).not.toContain("vehicle");
+    expect(AUDIT_SCHEMA.required).not.toContain("priceEur");
+  });
 });

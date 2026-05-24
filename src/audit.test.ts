@@ -147,6 +147,39 @@ describe("runAuditCached", () => {
 
     expect(calls).toBe(4); // two separate audits, 2 stages each
   });
+
+  test("attaches priceHistory from the tracker on a fresh audit", async () => {
+    const history = {
+      carId: "car-1",
+      observations: [{ priceEur: 29950, mileageKm: 118000, observedAt: "2026-05-24T00:00:00.000Z" }],
+      firstSeenAt: "2026-05-24T00:00:00.000Z",
+      lastSeenAt: "2026-05-24T00:00:00.000Z",
+      currentPriceEur: 29950,
+      changeSinceFirstEur: 0,
+    };
+    const tracker = { record: async () => history };
+    const audit = await runAuditCached({ budgetMax: 30000 }, URL, {
+      generate: stubbed(JSON.stringify(validAudit)),
+      cache: new TtlCache<Audit>(),
+      tracker,
+    });
+    expect(audit.priceHistory).toEqual(history);
+  });
+
+  test("a throwing tracker never breaks the audit", async () => {
+    const tracker = {
+      record: async () => {
+        throw new Error("tracker exploded");
+      },
+    };
+    const audit = await runAuditCached({ budgetMax: 30000 }, URL, {
+      generate: stubbed(JSON.stringify(validAudit)),
+      cache: new TtlCache<Audit>(),
+      tracker,
+    });
+    expect(audit.verdict).toBe(validAudit.verdict);
+    expect(audit.priceHistory).toBeUndefined();
+  });
 });
 
 describe("stripCodeFence", () => {

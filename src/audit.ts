@@ -3,6 +3,7 @@
 import { GoogleGenAI } from "@google/genai";
 import type { Audit, Profile } from "./types.ts";
 import { TtlCache, auditCacheKey } from "./cache.ts";
+import { createDefaultTracker, type PriceTracker } from "./pricetracker.ts";
 import {
   AUDIT_SCHEMA,
   EXTRACTION_SYSTEM_PROMPT,
@@ -73,14 +74,21 @@ const defaultAuditCache = new TtlCache<Audit>({
   maxEntries: 500,
 });
 
+const defaultTracker = createDefaultTracker();
+
 export interface RunAuditCachedOptions extends RunAuditOptions {
   cache?: TtlCache<Audit>;
+  tracker?: PriceTracker;
 }
 
 /**
  * Cached wrapper around runAudit, keyed by (profile, url). Identical requests
  * within the TTL skip both Gemini calls. Listings change over time (price drops,
  * sold), so the default TTL is short (1 hour, overridable via CACHE_TTL_MS).
+ *
+ * On a fresh audit (cache miss) only, the price tracker records a price point
+ * for the car and attaches its cross-listing `priceHistory`. Tracking is
+ * best-effort: a failure returns no history and never affects the audit.
  */
 export async function runAuditCached(
   profile: Profile,
@@ -94,6 +102,14 @@ export async function runAuditCached(
   if (hit) return hit;
 
   const audit = await runAudit(profile, url, opts);
+  // Price tracking is best-effort: never let it fail the audit. (The tracker
+  // also swallows its own errors; this is a belt-and-braces guard.)
+  try {
+    const history = await (opts.tracker ?? defaultTracker).record(audit, url);
+    if (history) audit.priceHistory = history;
+  } catch (err) {
+    console.error("price tracking threw:", err);
+  }
   cache.set(key, audit);
   return audit;
 }
@@ -238,5 +254,9 @@ export function isAudit(v: unknown): v is Audit {
   if (!Array.isArray(v.assessment) || !v.assessment.every(isInsight)) return false;
   if (!Array.isArray(v.modelYearNotes) || !v.modelYearNotes.every(isInsight)) return false;
   if (!Array.isArray(v.alternatives) || !v.alternatives.every(isAlternative)) return false;
+  // Optional price-tracking fields: validated only when present (the tracker
+  // does its own fingerprint validation before using them).
+  if (v.vehicle !== undefined && !isObject(v.vehicle)) return false;
+  if (v.priceEur !== undefined && v.priceEur !== null && typeof v.priceEur !== "number") return false;
   return true;
 }

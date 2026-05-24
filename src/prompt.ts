@@ -50,7 +50,9 @@ Honesty rules:
 - You only see the public listing — you cannot verify mileage, write-off status, or outstanding finance. When listing signals warrant it (UK import, VRT-pending, "0 owners" with pending history, suspiciously low price, mileage inconsistencies), set suggestHistoryCheck=true on the relevant watch item and recommend a paid history report (Cartell/Motorcheck).
 - score is 0–100 for fit + soundness for THIS buyer. verdict: "good_fit" (~70+), "proceed_with_caution" (~40–69), "avoid" (<40).
 - Keep titles to a few words (chip-sized). Keep details to one sentence.
-- If the profile is sparse, audit the car on general merit and say what profile info would sharpen the verdict.`;
+- If the profile is sparse, audit the car on general merit and say what profile info would sharpen the verdict.
+
+Also extract a normalized \`vehicle\` block (make, model, trim, year, mileageKm in km, fuel, transmission, colour) and \`priceEur\` (the asking price as a plain number in euros). These are used to track the car's price over time across relistings, so be consistent: lowercase-friendly values, mileage in km, year as the model/registration year. Omit \`priceEur\` entirely for POA / finance-only listings, and omit any vehicle field you can't determine.`;
 
 /** Render a profile into a compact, readable block for the prompt. Omits empty fields. */
 export function formatProfile(profile: Profile): string {
@@ -164,6 +166,25 @@ export const AUDIT_SCHEMA = {
         },
         required: ["car", "sameModelNewerYear", "reason"],
       },
+    },
+    vehicle: {
+      type: "object",
+      description: "Normalized key facts about the car, used to track its price across relistings.",
+      properties: {
+        make: { type: "string", description: "e.g. 'BMW'." },
+        model: { type: "string", description: "e.g. '320d' or '3 Series'." },
+        trim: { type: "string", description: "e.g. 'M Sport', 'SE'. Omit if unknown." },
+        year: { type: "number", description: "Model/registration year, e.g. 2019." },
+        mileageKm: { type: "number", description: "Odometer reading in kilometres." },
+        fuel: { type: "string", description: "petrol | diesel | hybrid | ev | other." },
+        transmission: { type: "string", description: "automatic | manual." },
+        colour: { type: "string", description: "Exterior colour." },
+      },
+      required: ["make", "model", "year"],
+    },
+    priceEur: {
+      type: "number",
+      description: "Asking price as a plain number in euros. Omit entirely for POA / finance-only listings.",
     },
   },
   required: [

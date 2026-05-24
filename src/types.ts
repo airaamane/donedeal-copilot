@@ -43,6 +43,41 @@ export interface Alternative {
   reason: string; // why it fits the profile better
 }
 
+/** Normalized car facts extracted alongside the audit, used to fingerprint the
+ *  car for price tracking across relists. See the price-tracking design doc. */
+export interface Vehicle {
+  make: string;
+  model: string;
+  trim?: string;
+  year: number;
+  mileageKm?: number;
+  fuel?: string;
+  transmission?: string;
+  colour?: string;
+}
+
+/** A single price point for a car (one row per price change, not per view). */
+export interface PriceObservation {
+  priceEur: number;
+  mileageKm: number;
+  observedAt: string; // ISO timestamp
+}
+
+/** A car's price history across every listing we've seen it in. */
+export interface PriceHistory {
+  carId: string;
+  observations: PriceObservation[]; // oldest → newest
+  firstSeenAt: string;
+  lastSeenAt: string;
+  currentPriceEur: number;
+  changeSinceFirstEur: number; // currentPrice − firstObservedPrice (signed)
+  lastChange?: {
+    deltaEur: number; // signed
+    fromPriceEur: number;
+    observedAt: string;
+  };
+}
+
 /**
  * Structured audit returned to the extension. The value is in what the buyer
  * CAN'T easily see: condition/hidden issues, model-year particulars, and
@@ -57,4 +92,7 @@ export interface Audit {
   assessment: Insight[]; // hidden issues / non-obvious concerns not visible on the listing
   modelYearNotes: Insight[]; // what's particular about this model / generation / year
   alternatives: Alternative[]; // better year of the same car, and/or similar better-fit cars
+  vehicle?: Vehicle; // normalized car facts, for price tracking across relists
+  priceEur?: number | null; // asking price in euros; null/absent for POA / finance-only
+  priceHistory?: PriceHistory; // cross-listing price history (present only when tracking is enabled)
 }
