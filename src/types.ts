@@ -20,9 +20,13 @@ export interface Profile {
 export interface AuditRequest {
   profile: Profile;
   url: string; // URL of the listing page; the backend reads it via Gemini (urlContext)
+  listingText?: string; // pre-extracted page content from the client's browser; when present the backend skips its own fetch
 }
 
 export type Verdict = "good_fit" | "proceed_with_caution" | "avoid";
+
+/** Listing market: "uk" (GBP, miles — incl. Northern Ireland) or "ie" (EUR, km). */
+export type Market = "uk" | "ie";
 
 /** A quick 2–3 word profile-fit flash, e.g. "Petrol, wanted diesel". */
 export interface FitChip {
@@ -56,24 +60,27 @@ export interface Vehicle {
   colour?: string;
 }
 
-/** A single price point for a car (one row per price change, not per view). */
+/** A single price point for a car (one row per price change, not per view).
+ *  Price is in the car's native currency — see {@link PriceHistory.market}. */
 export interface PriceObservation {
-  priceEur: number;
+  price: number;
   mileageKm: number;
   observedAt: string; // ISO timestamp
 }
 
-/** A car's price history across every listing we've seen it in. */
+/** A car's price history across every listing we've seen it in. All prices are
+ *  in the car's native currency, indicated by `market` (uk = GBP, ie = EUR). */
 export interface PriceHistory {
   carId: string;
+  market: Market; // currency context for every price below
   observations: PriceObservation[]; // oldest → newest
   firstSeenAt: string;
   lastSeenAt: string;
-  currentPriceEur: number;
-  changeSinceFirstEur: number; // currentPrice − firstObservedPrice (signed)
+  currentPrice: number;
+  changeSinceFirst: number; // currentPrice − firstObservedPrice (signed)
   lastChange?: {
-    deltaEur: number; // signed
-    fromPriceEur: number;
+    delta: number; // signed
+    fromPrice: number;
     observedAt: string;
   };
 }
@@ -85,6 +92,7 @@ export interface PriceHistory {
  */
 export interface Audit {
   verdict: Verdict; // category for the gauge label
+  market: Market; // "uk" (GBP, miles; incl. Northern Ireland) or "ie" (EUR, km) — sets the currency for `price`
   score: number; // 0–100, drives the gauge needle
   summary: string; // 1–2 sentence bottom line
   fitChips: FitChip[]; // quick profile match/mismatch flashes
@@ -93,6 +101,6 @@ export interface Audit {
   modelYearNotes: Insight[]; // what's particular about this model / generation / year
   alternatives: Alternative[]; // better year of the same car, and/or similar better-fit cars
   vehicle?: Vehicle; // normalized car facts, for price tracking across relists
-  priceEur?: number | null; // asking price in euros; null/absent for POA / finance-only
+  price?: number | null; // asking price in the market's native currency (GBP for uk, EUR for ie); null/absent for POA / finance-only
   priceHistory?: PriceHistory; // cross-listing price history (present only when tracking is enabled)
 }

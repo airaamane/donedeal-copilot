@@ -53,6 +53,7 @@ describe("AUDIT_SCHEMA", () => {
     expect(AUDIT_SCHEMA.type).toBe("object");
     expect(AUDIT_SCHEMA.required).toEqual([
       "verdict",
+      "market",
       "score",
       "summary",
       "fitChips",
@@ -62,17 +63,23 @@ describe("AUDIT_SCHEMA", () => {
       "alternatives",
     ]);
     expect(AUDIT_SCHEMA.properties.verdict.enum).toContain("good_fit");
+    expect(AUDIT_SCHEMA.properties.market.enum).toEqual(["uk", "ie"]);
     expect(AUDIT_SCHEMA.properties.alternatives.items.properties.sameModelNewerYear.type).toBe(
       "boolean",
     );
   });
 
-  test("carries the price-tracking vehicle block and priceEur (not required)", () => {
+  test("carries the price-tracking vehicle block and price (not required)", () => {
     expect(AUDIT_SCHEMA.properties.vehicle.type).toBe("object");
     expect(AUDIT_SCHEMA.properties.vehicle.required).toEqual(["make", "model", "year"]);
-    expect(AUDIT_SCHEMA.properties.priceEur.type).toBe("number");
+    expect(AUDIT_SCHEMA.properties.price.type).toBe("number");
     // kept out of the top-level required list so POA / non-car pages still validate
     expect(AUDIT_SCHEMA.required).not.toContain("vehicle");
-    expect(AUDIT_SCHEMA.required).not.toContain("priceEur");
+    expect(AUDIT_SCHEMA.required).not.toContain("price");
+  });
+
+  test("market is required and enumerates uk/ie", () => {
+    expect(AUDIT_SCHEMA.properties.market.enum).toEqual(["uk", "ie"]);
+    expect(AUDIT_SCHEMA.required).toContain("market");
   });
 });

@@ -52,7 +52,10 @@ Honesty rules:
 - Keep titles to a few words (chip-sized). Keep details to one sentence.
 - If the profile is sparse, audit the car on general merit and say what profile info would sharpen the verdict.
 
-Also extract a normalized \`vehicle\` block (make, model, trim, year, mileageKm in km, fuel, transmission, colour) and \`priceEur\` (the asking price as a plain number in euros). These are used to track the car's price over time across relistings, so be consistent: lowercase-friendly values, mileage in km, year as the model/registration year. Omit \`priceEur\` entirely for POA / finance-only listings, and omit any vehicle field you can't determine.`;
+Also determine the market and extract normalized tracking fields. These track the car's price over time across relistings, so be consistent: lowercase-friendly values, year as the model/registration year, and omit any vehicle field you can't determine.
+- \`market\`: "uk" if the listing is priced in pounds (£/GBP) and/or quotes mileage in miles — this includes Northern Ireland — or "ie" if priced in euros (€/EUR) and/or quotes mileage in km. If you genuinely cannot tell, use "ie".
+- a \`vehicle\` block (make, model, trim, year, mileageKm, fuel, transmission, colour). Always give \`mileageKm\` in kilometres — convert from miles for UK listings (1 mile = 1.609 km).
+- \`price\`: the asking price as a plain number in the listing's own currency — pounds for "uk", euros for "ie". Do NOT convert between currencies. Omit \`price\` entirely for POA / finance-only listings.`;
 
 /** Render a profile into a compact, readable block for the prompt. Omits empty fields. */
 export function formatProfile(profile: Profile): string {
@@ -112,6 +115,11 @@ export const AUDIT_SCHEMA = {
       type: "string",
       enum: ["good_fit", "proceed_with_caution", "avoid"],
       description: "Overall verdict category for the gauge label.",
+    },
+    market: {
+      type: "string",
+      enum: ["uk", "ie"],
+      description: "Listing market: 'uk' (GBP, miles; incl. Northern Ireland) or 'ie' (EUR, km). Sets the currency for `price`.",
     },
     score: {
       type: "number",
@@ -182,13 +190,14 @@ export const AUDIT_SCHEMA = {
       },
       required: ["make", "model", "year"],
     },
-    priceEur: {
+    price: {
       type: "number",
-      description: "Asking price as a plain number in euros. Omit entirely for POA / finance-only listings.",
+      description: "Asking price as a plain number in the market's native currency (GBP for 'uk', EUR for 'ie'). Do not convert currencies. Omit entirely for POA / finance-only listings.",
     },
   },
   required: [
     "verdict",
+    "market",
     "score",
     "summary",
     "fitChips",

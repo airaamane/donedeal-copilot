@@ -11,6 +11,7 @@ beforeEach(() => {
 
 const sampleAudit: Audit = {
   verdict: "good_fit",
+  market: "ie",
   score: 80,
   summary: "Great fit.",
   fitChips: [],
@@ -71,6 +72,38 @@ describe("handleRequest", () => {
   test("400 on non-object profile", async () => {
     const res = await handleRequest(post({ profile: "x", url: VALID_URL }), okDeps);
     expect(res.status).toBe(400);
+  });
+
+  test("400 when listingText is not a string", async () => {
+    const res = await handleRequest(
+      post({ profile: {}, url: VALID_URL, listingText: 123 }),
+      okDeps,
+    );
+    expect(res.status).toBe(400);
+  });
+
+  test("400 when listingText exceeds the size cap", async () => {
+    const res = await handleRequest(
+      post({ profile: {}, url: VALID_URL, listingText: "x".repeat(100_001) }),
+      okDeps,
+    );
+    expect(res.status).toBe(400);
+  });
+
+  test("threads listingText through to runAudit", async () => {
+    let seen: string | undefined = "unset";
+    const deps: ServerDeps = {
+      runAudit: async (_profile, _url, opts) => {
+        seen = opts?.listingText;
+        return sampleAudit;
+      },
+    };
+    const res = await handleRequest(
+      post({ profile: {}, url: VALID_URL, listingText: "pasted listing markdown" }),
+      deps,
+    );
+    expect(res.status).toBe(200);
+    expect(seen).toBe("pasted listing markdown");
   });
 
   test("400 on invalid JSON", async () => {

@@ -47,12 +47,19 @@ export interface RunAuditOptions {
   generate?: GenerateFn;
   extractTimeoutMs?: number;
   auditTimeoutMs?: number;
+  /** Pre-extracted listing content from the client. When present and non-empty,
+   *  stage 1 (the urlContext fetch) is skipped and this text is audited directly. */
+  listingText?: string;
 }
 
 /**
  * profile + listing url → AI audit, in two stages:
  *   1. read the listing page into markdown (urlContext tool, no schema)
  *   2. audit that markdown against the profile (no tools, enforced JSON schema)
+ *
+ * Stage 1 is skipped when the caller supplies `listingText` (the client's browser
+ * already has the rendered page — useful for sites behind anti-bot protection that
+ * the urlContext fetch can't read, e.g. AutoTrader UK).
  *
  * Stage 2 must run without tools — enabling tools makes Gemini ignore the
  * response schema and freelance its own field names.
@@ -65,7 +72,10 @@ export async function runAudit(
   opts: RunAuditOptions = {},
 ): Promise<Audit> {
   const generate = opts.generate ?? defaultGenerate();
-  const listing = await extractListing(generate, url, opts.extractTimeoutMs ?? EXTRACT_TIMEOUT_MS);
+  const supplied = opts.listingText?.trim();
+  const listing = supplied
+    ? supplied
+    : await extractListing(generate, url, opts.extractTimeoutMs ?? EXTRACT_TIMEOUT_MS);
   return auditListing(generate, profile, listing, opts.auditTimeoutMs ?? AUDIT_TIMEOUT_MS);
 }
 
@@ -222,6 +232,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 // --- Runtime validation of the model output ---------------------------------
 
 const VERDICTS = ["good_fit", "proceed_with_caution", "avoid"];
+const MARKETS = ["uk", "ie"];
 
 function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === "object" && v !== null && !Array.isArray(v);
@@ -247,6 +258,7 @@ function isAlternative(v: unknown): boolean {
 export function isAudit(v: unknown): v is Audit {
   if (!isObject(v)) return false;
   if (typeof v.verdict !== "string" || !VERDICTS.includes(v.verdict)) return false;
+  if (typeof v.market !== "string" || !MARKETS.includes(v.market)) return false;
   if (typeof v.score !== "number" || Number.isNaN(v.score)) return false;
   if (typeof v.summary !== "string") return false;
   if (typeof v.listingSnapshot !== "string") return false;
@@ -257,6 +269,6 @@ export function isAudit(v: unknown): v is Audit {
   // Optional price-tracking fields: validated only when present (the tracker
   // does its own fingerprint validation before using them).
   if (v.vehicle !== undefined && !isObject(v.vehicle)) return false;
-  if (v.priceEur !== undefined && v.priceEur !== null && typeof v.priceEur !== "number") return false;
+  if (v.price !== undefined && v.price !== null && typeof v.price !== "number") return false;
   return true;
 }

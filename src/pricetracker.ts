@@ -6,7 +6,7 @@
 // returns null so the audit it rides on is unaffected.
 
 import { SQL } from "bun";
-import type { Audit, PriceHistory, PriceObservation, Vehicle } from "./types.ts";
+import type { Audit, Market, PriceHistory, PriceObservation, Vehicle } from "./types.ts";
 
 // --- Matching tunables (km) --------------------------------------------------
 const MILEAGE_NOISE_KM = 2_000; // tolerated downward wobble from data-entry noise
@@ -17,6 +17,7 @@ const MILEAGE_TOLERANCE_FRAC = 0.1; // or 10% of stored mileage, whichever is la
 
 export interface NewCar {
   bucketKey: string;
+  market: Market;
   make: string;
   model: string;
   trim: string | null;
@@ -25,7 +26,7 @@ export interface NewCar {
   transmission: string | null;
   colour: string | null;
   lastMileageKm: number;
-  lastPriceEur: number;
+  lastPrice: number; // native currency for the market (GBP for uk, EUR for ie)
   createdAt: string;
   lastSeenAt: string;
 }
@@ -41,7 +42,7 @@ export interface PriceStore {
   insertCar(car: NewCar): Promise<CarRow>;
   insertObservation(
     carId: string,
-    priceEur: number,
+    price: number,
     mileageKm: number,
     sourceUrl: string,
     observedAt: string,
@@ -49,7 +50,7 @@ export interface PriceStore {
   /** Price changed: update the denormalized last_* fields. */
   updateCarOnPriceChange(
     carId: string,
-    patch: { lastPriceEur: number; lastMileageKm: number; lastSeenAt: string },
+    patch: { lastPrice: number; lastMileageKm: number; lastSeenAt: string },
   ): Promise<void>;
   /** Price unchanged: just record that the car is still listed. */
   touchCar(carId: string, lastSeenAt: string, lastMileageKm: number): Promise<void>;
@@ -74,10 +75,12 @@ export function normalize(value: string | null | undefined): string {
   return (value ?? "").toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
 }
 
-/** Coarse bucket key: the stable, low-cardinality fields. Trim/colour/mileage
- *  are NOT in the key (they discriminate within a bucket instead). */
-export function bucketKey(v: Vehicle): string {
-  return [normalize(v.make), normalize(v.model), String(v.year), normalize(v.fuel), normalize(v.transmission)].join("|");
+/** Coarse bucket key: the stable, low-cardinality fields, scoped by market so a
+ *  UK and an Irish car of the same make/model/year never share a bucket (their
+ *  prices are in different currencies). Trim/colour/mileage are NOT in the key
+ *  (they discriminate within a bucket instead). */
+export function bucketKey(v: Vehicle, market: Market): string {
+  return [market, normalize(v.make), normalize(v.model), String(v.year), normalize(v.fuel), normalize(v.transmission)].join("|");
 }
 
 /** Mileage only climbs between relists, so the window is directional: a small
@@ -114,7 +117,8 @@ export function resolveMatch(candidates: CarRow[], v: Vehicle, mileageKm: number
 export interface Fingerprint {
   vehicle: Vehicle;
   mileageKm: number;
-  priceEur: number;
+  price: number;
+  market: Market;
 }
 
 /** Pull the fields needed to track a price point, or null if any are missing
@@ -125,29 +129,35 @@ export function extractFingerprint(audit: Audit): Fingerprint | null {
     return null;
   }
   if (typeof v.mileageKm !== "number") return null;
-  if (typeof audit.priceEur !== "number") return null;
-  return { vehicle: v, mileageKm: v.mileageKm, priceEur: audit.priceEur };
+  if (typeof audit.price !== "number") return null;
+  return { vehicle: v, mileageKm: v.mileageKm, price: audit.price, market: audit.market };
 }
 
-/** Build the response-facing history from a car's stored observations. */
-export function buildPriceHistory(carId: string, observations: PriceObservation[]): PriceHistory | null {
+/** Build the response-facing history from a car's stored observations. Prices
+ *  are in the car's native currency, indicated by `market`. */
+export function buildPriceHistory(
+  carId: string,
+  market: Market,
+  observations: PriceObservation[],
+): PriceHistory | null {
   if (observations.length === 0) return null;
   const sorted = [...observations].sort((a, b) => a.observedAt.localeCompare(b.observedAt));
   const first = sorted[0]!;
   const last = sorted[sorted.length - 1]!;
   const history: PriceHistory = {
     carId,
+    market,
     observations: sorted,
     firstSeenAt: first.observedAt,
     lastSeenAt: last.observedAt,
-    currentPriceEur: last.priceEur,
-    changeSinceFirstEur: last.priceEur - first.priceEur,
+    currentPrice: last.price,
+    changeSinceFirst: last.price - first.price,
   };
   if (sorted.length >= 2) {
     const prev = sorted[sorted.length - 2]!;
     history.lastChange = {
-      deltaEur: last.priceEur - prev.priceEur,
-      fromPriceEur: prev.priceEur,
+      delta: last.price - prev.price,
+      fromPrice: prev.price,
       observedAt: last.observedAt,
     };
   }
@@ -170,7 +180,7 @@ export class DbPriceTracker implements PriceTracker {
       if (!fp) return null;
 
       const nowIso = this.now().toISOString();
-      const key = bucketKey(fp.vehicle);
+      const key = bucketKey(fp.vehicle, fp.market);
       const candidates = await this.store.findCarsByBucketKey(key);
       const matched = resolveMatch(candidates, fp.vehicle, fp.mileageKm);
 
@@ -178,6 +188,7 @@ export class DbPriceTracker implements PriceTracker {
       if (!matched) {
         const car = await this.store.insertCar({
           bucketKey: key,
+          market: fp.market,
           make: fp.vehicle.make,
           model: fp.vehicle.model,
           trim: fp.vehicle.trim ?? null,
@@ -186,19 +197,19 @@ export class DbPriceTracker implements PriceTracker {
           transmission: fp.vehicle.transmission ?? null,
           colour: fp.vehicle.colour ?? null,
           lastMileageKm: fp.mileageKm,
-          lastPriceEur: fp.priceEur,
+          lastPrice: fp.price,
           createdAt: nowIso,
           lastSeenAt: nowIso,
         });
         carId = car.id;
-        await this.store.insertObservation(carId, fp.priceEur, fp.mileageKm, sourceUrl, nowIso);
+        await this.store.insertObservation(carId, fp.price, fp.mileageKm, sourceUrl, nowIso);
       } else {
         carId = matched.id;
         const lastMileageKm = Math.max(matched.lastMileageKm, fp.mileageKm);
-        if (fp.priceEur !== matched.lastPriceEur) {
-          await this.store.insertObservation(carId, fp.priceEur, fp.mileageKm, sourceUrl, nowIso);
+        if (fp.price !== matched.lastPrice) {
+          await this.store.insertObservation(carId, fp.price, fp.mileageKm, sourceUrl, nowIso);
           await this.store.updateCarOnPriceChange(carId, {
-            lastPriceEur: fp.priceEur,
+            lastPrice: fp.price,
             lastMileageKm,
             lastSeenAt: nowIso,
           });
@@ -207,7 +218,7 @@ export class DbPriceTracker implements PriceTracker {
         }
       }
 
-      return buildPriceHistory(carId, await this.store.getObservations(carId));
+      return buildPriceHistory(carId, fp.market, await this.store.getObservations(carId));
     } catch (err) {
       console.error("price tracking failed:", err);
       return null;
@@ -235,21 +246,21 @@ export class InMemoryPriceStore implements PriceStore {
 
   async insertObservation(
     carId: string,
-    priceEur: number,
+    price: number,
     mileageKm: number,
     _sourceUrl: string,
     observedAt: string,
   ): Promise<void> {
-    this.obs.get(carId)?.push({ priceEur, mileageKm, observedAt });
+    this.obs.get(carId)?.push({ price, mileageKm, observedAt });
   }
 
   async updateCarOnPriceChange(
     carId: string,
-    patch: { lastPriceEur: number; lastMileageKm: number; lastSeenAt: string },
+    patch: { lastPrice: number; lastMileageKm: number; lastSeenAt: string },
   ): Promise<void> {
     const car = this.cars.find((c) => c.id === carId);
     if (!car) return;
-    car.lastPriceEur = patch.lastPriceEur;
+    car.lastPrice = patch.lastPrice;
     car.lastMileageKm = patch.lastMileageKm;
     car.lastSeenAt = patch.lastSeenAt;
   }
@@ -271,6 +282,7 @@ export class InMemoryPriceStore implements PriceStore {
 interface CarDbRow {
   id: string;
   bucket_key: string;
+  market: string;
   make: string;
   model: string;
   trim: string | null;
@@ -279,7 +291,7 @@ interface CarDbRow {
   transmission: string | null;
   colour: string | null;
   last_mileage_km: number;
-  last_price_eur: number;
+  last_price: number;
   created_at: string;
   last_seen_at: string;
 }
@@ -288,6 +300,7 @@ function toCarRow(r: CarDbRow): CarRow {
   return {
     id: r.id,
     bucketKey: r.bucket_key,
+    market: r.market as Market,
     make: r.make,
     model: r.model,
     trim: r.trim,
@@ -296,7 +309,7 @@ function toCarRow(r: CarDbRow): CarRow {
     transmission: r.transmission,
     colour: r.colour,
     lastMileageKm: r.last_mileage_km,
-    lastPriceEur: r.last_price_eur,
+    lastPrice: r.last_price,
     createdAt: typeof r.created_at === "string" ? r.created_at : new Date(r.created_at).toISOString(),
     lastSeenAt: typeof r.last_seen_at === "string" ? r.last_seen_at : new Date(r.last_seen_at).toISOString(),
   };
@@ -318,6 +331,7 @@ export class PostgresPriceStore implements PriceStore {
       CREATE TABLE IF NOT EXISTS cars (
         id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         bucket_key      text NOT NULL,
+        market          text NOT NULL,
         make            text NOT NULL,
         model           text NOT NULL,
         trim            text,
@@ -326,7 +340,7 @@ export class PostgresPriceStore implements PriceStore {
         transmission    text,
         colour          text,
         last_mileage_km integer NOT NULL,
-        last_price_eur  integer NOT NULL,
+        last_price      integer NOT NULL,
         created_at      timestamptz NOT NULL DEFAULT now(),
         last_seen_at    timestamptz NOT NULL DEFAULT now()
       )`;
@@ -335,7 +349,7 @@ export class PostgresPriceStore implements PriceStore {
       CREATE TABLE IF NOT EXISTS price_observations (
         id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         car_id      uuid NOT NULL REFERENCES cars (id) ON DELETE CASCADE,
-        price_eur   integer NOT NULL,
+        price       integer NOT NULL,
         mileage_km  integer NOT NULL,
         observed_at timestamptz NOT NULL DEFAULT now(),
         source_url  text NOT NULL
@@ -353,11 +367,11 @@ export class PostgresPriceStore implements PriceStore {
     await this.ready;
     const rows = (await this.sql`
       INSERT INTO cars
-        (bucket_key, make, model, trim, year, fuel, transmission, colour,
-         last_mileage_km, last_price_eur, created_at, last_seen_at)
+        (bucket_key, market, make, model, trim, year, fuel, transmission, colour,
+         last_mileage_km, last_price, created_at, last_seen_at)
       VALUES
-        (${car.bucketKey}, ${car.make}, ${car.model}, ${car.trim}, ${car.year}, ${car.fuel},
-         ${car.transmission}, ${car.colour}, ${car.lastMileageKm}, ${car.lastPriceEur},
+        (${car.bucketKey}, ${car.market}, ${car.make}, ${car.model}, ${car.trim}, ${car.year}, ${car.fuel},
+         ${car.transmission}, ${car.colour}, ${car.lastMileageKm}, ${car.lastPrice},
          ${car.createdAt}, ${car.lastSeenAt})
       RETURNING *`) as CarDbRow[];
     return toCarRow(rows[0]!);
@@ -365,25 +379,25 @@ export class PostgresPriceStore implements PriceStore {
 
   async insertObservation(
     carId: string,
-    priceEur: number,
+    price: number,
     mileageKm: number,
     sourceUrl: string,
     observedAt: string,
   ): Promise<void> {
     await this.ready;
     await this.sql`
-      INSERT INTO price_observations (car_id, price_eur, mileage_km, observed_at, source_url)
-      VALUES (${carId}, ${priceEur}, ${mileageKm}, ${observedAt}, ${sourceUrl})`;
+      INSERT INTO price_observations (car_id, price, mileage_km, observed_at, source_url)
+      VALUES (${carId}, ${price}, ${mileageKm}, ${observedAt}, ${sourceUrl})`;
   }
 
   async updateCarOnPriceChange(
     carId: string,
-    patch: { lastPriceEur: number; lastMileageKm: number; lastSeenAt: string },
+    patch: { lastPrice: number; lastMileageKm: number; lastSeenAt: string },
   ): Promise<void> {
     await this.ready;
     await this.sql`
       UPDATE cars
-      SET last_price_eur = ${patch.lastPriceEur},
+      SET last_price = ${patch.lastPrice},
           last_mileage_km = ${patch.lastMileageKm},
           last_seen_at = ${patch.lastSeenAt}
       WHERE id = ${carId}`;
@@ -399,14 +413,14 @@ export class PostgresPriceStore implements PriceStore {
   async getObservations(carId: string): Promise<PriceObservation[]> {
     await this.ready;
     const rows = (await this.sql`
-      SELECT price_eur, mileage_km, observed_at
+      SELECT price, mileage_km, observed_at
       FROM price_observations WHERE car_id = ${carId} ORDER BY observed_at ASC`) as {
-      price_eur: number;
+      price: number;
       mileage_km: number;
       observed_at: string;
     }[];
     return rows.map((r) => ({
-      priceEur: r.price_eur,
+      price: r.price,
       mileageKm: r.mileage_km,
       observedAt: typeof r.observed_at === "string" ? r.observed_at : new Date(r.observed_at).toISOString(),
     }));

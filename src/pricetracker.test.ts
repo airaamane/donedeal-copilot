@@ -10,10 +10,11 @@ import {
   resolveMatch,
   type CarRow,
 } from "./pricetracker.ts";
-import type { Audit, Vehicle } from "./types.ts";
+import type { Audit, Market, Vehicle } from "./types.ts";
 
-const baseAudit: Omit<Audit, "vehicle" | "priceEur"> = {
+const baseAudit: Omit<Audit, "vehicle" | "price"> = {
   verdict: "good_fit",
+  market: "ie",
   score: 80,
   summary: "x",
   fitChips: [],
@@ -23,10 +24,15 @@ const baseAudit: Omit<Audit, "vehicle" | "priceEur"> = {
   alternatives: [],
 };
 
-const auditFor = (vehicle: Vehicle, priceEur: number | null | undefined): Audit => ({
+const auditFor = (
+  vehicle: Vehicle,
+  price: number | null | undefined,
+  market: Market = "ie",
+): Audit => ({
   ...baseAudit,
+  market,
   vehicle,
-  ...(priceEur === undefined ? {} : { priceEur }),
+  ...(price === undefined ? {} : { price }),
 });
 
 const bmw: Vehicle = {
@@ -42,7 +48,8 @@ const bmw: Vehicle = {
 
 const carRow = (over: Partial<CarRow> = {}): CarRow => ({
   id: "car-1",
-  bucketKey: bucketKey(bmw),
+  bucketKey: bucketKey(bmw, "ie"),
+  market: "ie",
   make: "BMW",
   model: "320d",
   trim: "M Sport",
@@ -51,7 +58,7 @@ const carRow = (over: Partial<CarRow> = {}): CarRow => ({
   transmission: "automatic",
   colour: "black",
   lastMileageKm: 100_000,
-  lastPriceEur: 30_000,
+  lastPrice: 30_000,
   createdAt: "2026-05-01T00:00:00.000Z",
   lastSeenAt: "2026-05-01T00:00:00.000Z",
   ...over,
@@ -64,10 +71,14 @@ describe("pure helpers", () => {
   });
 
   test("bucketKey ignores trim/colour/mileage but keys on make/model/year/fuel/transmission", () => {
-    const a = bucketKey(bmw);
-    expect(a).toBe(bucketKey({ ...bmw, trim: "SE", colour: "white", mileageKm: 5 }));
-    expect(a).not.toBe(bucketKey({ ...bmw, year: 2020 }));
-    expect(a).not.toBe(bucketKey({ ...bmw, fuel: "petrol" }));
+    const a = bucketKey(bmw, "ie");
+    expect(a).toBe(bucketKey({ ...bmw, trim: "SE", colour: "white", mileageKm: 5 }, "ie"));
+    expect(a).not.toBe(bucketKey({ ...bmw, year: 2020 }, "ie"));
+    expect(a).not.toBe(bucketKey({ ...bmw, fuel: "petrol" }, "ie"));
+  });
+
+  test("bucketKey separates markets so UK and IE cars never share a bucket", () => {
+    expect(bucketKey(bmw, "ie")).not.toBe(bucketKey(bmw, "uk"));
   });
 
   test("mileageCompatible allows an upward relist and small downward noise", () => {
@@ -98,19 +109,21 @@ describe("pure helpers", () => {
   });
 
   test("buildPriceHistory derives current price, change, and last move", () => {
-    const h = buildPriceHistory("car-1", [
-      { priceEur: 30_000, mileageKm: 100_000, observedAt: "2026-05-01T00:00:00.000Z" },
-      { priceEur: 29_000, mileageKm: 101_000, observedAt: "2026-05-10T00:00:00.000Z" },
+    const h = buildPriceHistory("car-1", "ie", [
+      { price: 30_000, mileageKm: 100_000, observedAt: "2026-05-01T00:00:00.000Z" },
+      { price: 29_000, mileageKm: 101_000, observedAt: "2026-05-10T00:00:00.000Z" },
     ]);
-    expect(h?.currentPriceEur).toBe(29_000);
-    expect(h?.changeSinceFirstEur).toBe(-1_000);
-    expect(h?.lastChange).toEqual({ deltaEur: -1_000, fromPriceEur: 30_000, observedAt: "2026-05-10T00:00:00.000Z" });
+    expect(h?.market).toBe("ie");
+    expect(h?.currentPrice).toBe(29_000);
+    expect(h?.changeSinceFirst).toBe(-1_000);
+    expect(h?.lastChange).toEqual({ delta: -1_000, fromPrice: 30_000, observedAt: "2026-05-10T00:00:00.000Z" });
   });
 
   test("buildPriceHistory has no lastChange for a single observation", () => {
-    const h = buildPriceHistory("car-1", [{ priceEur: 30_000, mileageKm: 100_000, observedAt: "2026-05-01T00:00:00.000Z" }]);
+    const h = buildPriceHistory("car-1", "uk", [{ price: 9_995, mileageKm: 184_700, observedAt: "2026-05-01T00:00:00.000Z" }]);
+    expect(h?.market).toBe("uk");
     expect(h?.lastChange).toBeUndefined();
-    expect(h?.changeSinceFirstEur).toBe(0);
+    expect(h?.changeSinceFirst).toBe(0);
   });
 });
 
@@ -125,7 +138,17 @@ describe("DbPriceTracker", () => {
     const h = await tracker(store).record(auditFor(bmw, 30_000), "https://donedeal.ie/a");
     expect(store.cars).toHaveLength(1);
     expect(h?.observations).toHaveLength(1);
-    expect(h?.currentPriceEur).toBe(30_000);
+    expect(h?.currentPrice).toBe(30_000);
+  });
+
+  test("UK and IE listings of the same car never merge (separate buckets)", async () => {
+    clock = 0;
+    const store = new InMemoryPriceStore();
+    const t = tracker(store);
+    await t.record(auditFor(bmw, 30_000, "ie"), "https://donedeal.ie/a");
+    await t.record(auditFor(bmw, 26_000, "uk"), "https://autotrader.co.uk/b");
+    expect(store.cars).toHaveLength(2);
+    expect(store.cars.map((c) => c.market).sort()).toEqual(["ie", "uk"]);
   });
 
   test("recognises the same car relisted under a new URL at a lower price", async () => {
@@ -137,8 +160,8 @@ describe("DbPriceTracker", () => {
     const h = await t.record(auditFor({ ...bmw, mileageKm: 104_000 }, 28_500), "https://donedeal.ie/new");
     expect(store.cars).toHaveLength(1); // matched, not duplicated
     expect(h?.observations).toHaveLength(2);
-    expect(h?.currentPriceEur).toBe(28_500);
-    expect(h?.changeSinceFirstEur).toBe(-1_500);
+    expect(h?.currentPrice).toBe(28_500);
+    expect(h?.changeSinceFirst).toBe(-1_500);
   });
 
   test("unchanged price does not add an observation", async () => {

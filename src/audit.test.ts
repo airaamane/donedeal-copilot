@@ -14,6 +14,7 @@ const URL = "https://www.donedeal.ie/cars-for-sale/bmw/42108822";
 
 const validAudit: Audit = {
   verdict: "proceed_with_caution",
+  market: "ie",
   score: 62,
   summary: "Solid spec for the budget, but it's a UK import with no Irish history yet.",
   fitChips: [
@@ -86,6 +87,33 @@ describe("runAudit", () => {
     expect((stage2.config as any).responseJsonSchema).toBeDefined();
   });
 
+  test("supplied listingText skips the urlContext read stage", async () => {
+    const calls: Parameters<GenerateFn>[0][] = [];
+    const generate: GenerateFn = async (args) => {
+      calls.push(args);
+      return { text: JSON.stringify(validAudit) };
+    };
+    await runAudit({ budgetMax: 30000 }, URL, {
+      generate,
+      listingText: "### Vehicle\n* Price: £9,995\n* Mileage: 114,777 miles",
+    });
+
+    // Only stage 2 (the audit) ran — no extraction/urlContext call.
+    expect(calls).toHaveLength(1);
+    expect((calls[0]!.config as any).tools).toBeUndefined();
+    expect(calls[0]!.contents).toContain("£9,995");
+  });
+
+  test("blank listingText falls back to the urlContext read stage", async () => {
+    const calls: Parameters<GenerateFn>[0][] = [];
+    const generate: GenerateFn = async (args) => {
+      calls.push(args);
+      return { text: isExtraction(args) ? "### Vehicle" : JSON.stringify(validAudit) };
+    };
+    await runAudit({}, URL, { generate, listingText: "   " });
+    expect(calls).toHaveLength(2); // both stages ran
+  });
+
   test("throws AuditError on empty audit response", async () => {
     await expect(runAudit({}, URL, { generate: stubbed("") })).rejects.toBeInstanceOf(AuditError);
   });
@@ -151,11 +179,12 @@ describe("runAuditCached", () => {
   test("attaches priceHistory from the tracker on a fresh audit", async () => {
     const history = {
       carId: "car-1",
-      observations: [{ priceEur: 29950, mileageKm: 118000, observedAt: "2026-05-24T00:00:00.000Z" }],
+      market: "ie" as const,
+      observations: [{ price: 29950, mileageKm: 118000, observedAt: "2026-05-24T00:00:00.000Z" }],
       firstSeenAt: "2026-05-24T00:00:00.000Z",
       lastSeenAt: "2026-05-24T00:00:00.000Z",
-      currentPriceEur: 29950,
-      changeSinceFirstEur: 0,
+      currentPrice: 29950,
+      changeSinceFirst: 0,
     };
     const tracker = { record: async () => history };
     const audit = await runAuditCached({ budgetMax: 30000 }, URL, {
@@ -202,5 +231,12 @@ describe("isAudit", () => {
     expect(isAudit({ ...validAudit, fitChips: [{ label: "x" }] })).toBe(false);
     expect(isAudit({ ...validAudit, alternatives: [{ car: "x" }] })).toBe(false);
     expect(isAudit(null)).toBe(false);
+  });
+
+  test("rejects a bad or missing market", () => {
+    expect(isAudit({ ...validAudit, market: "fr" })).toBe(false);
+    const { market, ...withoutMarket } = validAudit;
+    expect(isAudit(withoutMarket)).toBe(false);
+    expect(isAudit({ ...validAudit, market: "uk" })).toBe(true);
   });
 });

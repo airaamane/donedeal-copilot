@@ -51,11 +51,14 @@ function checkAuth(req: Request): Response | null {
   return null;
 }
 
+// Upper bound on client-supplied listing text, to reject oversized bodies.
+const MAX_LISTING_TEXT_CHARS = 100_000;
+
 function validateBody(raw: unknown): AuditRequest {
   if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
     throw new BadRequestError("body must be a JSON object");
   }
-  const { profile, url } = raw as Record<string, unknown>;
+  const { profile, url, listingText } = raw as Record<string, unknown>;
   if (typeof url !== "string" || !isHttpUrl(url)) {
     throw new BadRequestError("`url` must be a valid http(s) URL");
   }
@@ -65,7 +68,19 @@ function validateBody(raw: unknown): AuditRequest {
   if (typeof profile !== "object" || profile === null || Array.isArray(profile)) {
     throw new BadRequestError("`profile` must be an object");
   }
-  return { profile: profile as Profile, url };
+  if (listingText !== undefined) {
+    if (typeof listingText !== "string") {
+      throw new BadRequestError("`listingText` must be a string");
+    }
+    if (listingText.length > MAX_LISTING_TEXT_CHARS) {
+      throw new BadRequestError("`listingText` exceeds the maximum allowed length");
+    }
+  }
+  return {
+    profile: profile as Profile,
+    url,
+    ...(listingText !== undefined ? { listingText: listingText as string } : {}),
+  };
 }
 
 function isHttpUrl(value: string): boolean {
@@ -204,7 +219,7 @@ export async function handleRequest(
     }
 
     try {
-      const audit = await deps.runAudit(body.profile, body.url);
+      const audit = await deps.runAudit(body.profile, body.url, { listingText: body.listingText });
       return json(audit, 200, rateLimitHeaders(rl));
     } catch (err) {
       if (err instanceof AuditError) {

@@ -58,11 +58,12 @@
       .field { display: flex; flex-direction: column; gap: 5px; }
       .field.wide { grid-column: 1 / -1; }
       label { font-size: 12.5px; color: var(--muted); font-weight: 500; }
-      input.f, select.f {
+      input.f, select.f, textarea.f {
         font-size: 14px; padding: 9px 11px; border: 1px solid var(--line);
         border-radius: 8px; outline: 0; background: #fff; color: var(--ink); width: 100%;
       }
-      input.f:focus, select.f:focus { border-color: var(--blue); }
+      textarea.f { font-family: inherit; resize: vertical; min-height: 84px; }
+      input.f:focus, select.f:focus, textarea.f:focus { border-color: var(--blue); }
 
       .actions { display: flex; justify-content: center; margin-top: 24px; }
       button.audit {
@@ -162,6 +163,7 @@
           <div class="field wide"><label for="mustHaves">Must-haves (comma separated)</label><input id="mustHaves" class="f" type="text" placeholder="Apple CarPlay, heated seats" /></div>
           <div class="field wide"><label for="dealBreakers">Deal-breakers (comma separated)</label><input id="dealBreakers" class="f" type="text" placeholder="cat write-off, timing belt due" /></div>
           <div class="field wide"><label for="notes">Other notes</label><input id="notes" class="f" type="text" placeholder="prefer a dealer with good reviews" /></div>
+          <div class="field wide"><label for="listingText">Listing text (optional — paste page text to skip the server fetch, e.g. for AutoTrader UK)</label><textarea id="listingText" class="f" placeholder="Paste the listing page text here. When filled, the backend audits this instead of fetching the URL."></textarea></div>
         </div>
 
         <details class="settings">
@@ -262,8 +264,30 @@
             ${insightSection("Assessment", audit.assessment, "assess")}
             ${insightSection("This model year", audit.modelYearNotes, "year")}
             ${altSection}
+            ${priceBlock(audit.priceHistory)}
           </div>`;
         $("result").style.display = "block";
+      }
+
+      // Price tracking is only present when DATABASE_URL is set AND the audit
+      // yielded a fingerprint (make/model/year/mileage + numeric price). Its
+      // presence here is the proof a DB row was written on this cache miss.
+      function priceBlock(h) {
+        if (!h) return "";
+        const sym = h.market === "uk" ? "£" : "€"; // currency follows the market
+        const money = (n) => sym + Number(n).toLocaleString();
+        const date = (iso) => { try { return new Date(iso).toLocaleString(); } catch { return iso; } };
+        const obs = (h.observations || []).map((o) => `
+          <div class="item">
+            <div class="t">${money(o.price)}<span class="alt-tag">${Number(o.mileageKm).toLocaleString()} km</span></div>
+            <div class="d">${esc(date(o.observedAt))}</div>
+          </div>`).join("");
+        const n = (h.observations || []).length;
+        return `<div class="flags">
+          <h3><span class="star">★</span> Price tracking · DB write (${esc((h.market || "").toUpperCase())})</h3>
+          <p class="snapshot">Recorded as car <code>${esc(h.carId)}</code> — ${n} observation${n === 1 ? "" : "s"}, current ${money(h.currentPrice)}.</p>
+          ${obs}
+        </div>`;
       }
 
       function esc(s) {
@@ -278,11 +302,15 @@
         $("go").disabled = true;
         setStatus("Reading the listing and auditing… (first run can take ~20s)");
 
+        const reqBody = { profile: buildProfile(), url };
+        const listingText = $("listingText").value.trim();
+        if (listingText) reqBody.listingText = listingText; // skip the server-side fetch
+
         try {
           const res = await fetch("/audit", {
             method: "POST",
             headers: { "Content-Type": "application/json", "X-API-Key": $("apiKey").value.trim() },
-            body: JSON.stringify({ profile: buildProfile(), url }),
+            body: JSON.stringify(reqBody),
           });
           const data = await res.json();
           if (!res.ok) { setStatus(`Error ${res.status}: ${data.error || "request failed"}`, true); return; }
