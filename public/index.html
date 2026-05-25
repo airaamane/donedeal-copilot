@@ -276,6 +276,27 @@
       }
       button.audit:disabled { opacity: 0.5; cursor: progress; filter: none; transform: none; }
 
+      /* Listing-text field — AutoTrader extraction helper */
+      .field__head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-sm); }
+      button.mini {
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        color: var(--color-accent);
+        background: transparent;
+        border: var(--rule-hair) solid var(--color-rule);
+        padding: 4px 8px;
+        cursor: pointer;
+        white-space: nowrap;
+        transition: border-color var(--dur-short) var(--ease-out), color var(--dur-short) var(--ease-out);
+      }
+      button.mini:hover { border-color: var(--color-accent); }
+      button.mini:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+      button.mini.copied { color: var(--v-good); border-color: var(--v-good); }
+      .hint { margin: var(--space-2xs) 0 0; font-family: var(--font-mono); font-size: var(--text-xs); letter-spacing: 0.02em; color: var(--color-muted); }
+      .hint.req { color: var(--color-accent); }
+
       details.settings { margin-top: var(--space-lg); border-top: var(--rule-hair) solid var(--color-rule); padding-top: var(--space-md); }
       details.settings summary {
         cursor: pointer;
@@ -578,7 +599,14 @@
             <div class="field wide"><label for="mustHaves">Must-haves (comma separated)</label><input id="mustHaves" class="f" type="text" placeholder="Apple CarPlay, heated seats" /></div>
             <div class="field wide"><label for="dealBreakers">Deal-breakers (comma separated)</label><input id="dealBreakers" class="f" type="text" placeholder="cat write-off, timing belt due" /></div>
             <div class="field wide"><label for="notes">Other notes</label><input id="notes" class="f" type="text" placeholder="prefer a dealer with good reviews" /></div>
-            <div class="field wide"><label for="listingText">Listing text (optional — paste page text to skip the server fetch, e.g. AutoTrader UK)</label><textarea id="listingText" class="f" placeholder="Paste the listing page text here. When filled, the backend audits this instead of fetching the URL."></textarea></div>
+            <div class="field wide" id="listingField">
+              <div class="field__head">
+                <label for="listingText">Listing text · AutoTrader only</label>
+                <button type="button" id="copyScript" class="mini">Copy extraction script</button>
+              </div>
+              <textarea id="listingText" class="f" placeholder="For AutoTrader: run the copied script in the listing tab's DevTools console, then paste the page text here."></textarea>
+              <p class="hint" id="listingHint"></p>
+            </div>
           </fieldset>
 
           <details class="settings">
@@ -620,11 +648,78 @@
       <footer class="foot">Car Audit · local test console · audits run against your own backend at <code>/audit</code>.</footer>
     </div>
 
+    <!-- The AutoTrader extraction snippet (script.js), copied to the clipboard by
+         the "Copy extraction script" button. Run it in the AutoTrader tab's
+         DevTools console; it copies the page text for pasting into Listing text. -->
+    <script type="text/plain" id="extractScript">(() => {
+    // 1) Rendered visible text — what your browser sees *after* passing Cloudflare
+    const text = document.body.innerText.replace(/\n{3,}/g, "\n\n").trim();
+
+    // 2) Structured data — listing sites often embed the car as JSON-LD
+    //    (Vehicle / Product / Offer). If present, this is cleaner than scraping text.
+    const jsonLd = [...document.querySelectorAll('script[type="application/ld+json"]')]
+        .map((s) => { try { return JSON.parse(s.textContent); } catch { return null; } })
+        .filter(Boolean);
+
+    const has = (re) => re.test(text);
+    console.log("=== client-side extraction test ===");
+    console.log("URL:", location.href);
+    console.log("innerText chars:", text.length, "| words:", text.split(/\s+/).length);
+    console.log("signals →  price:", has(/£\s?\d|\bPOA\b/i),
+        "| miles:", has(/\bmiles?\b/i),
+        "| year/reg:", has(/\b(19|20)\d{2}\b/));
+    console.log("JSON-LD blocks:", jsonLd.length, jsonLd);
+    console.log("--- innerText preview (first 1500 chars) ---\n" + text.slice(0, 1500));
+
+    window.__listing = { url: location.href, text, jsonLd };
+    try { copy(text); console.log("\n✓ full innerText copied to clipboard (also at window.__listing)"); }
+    catch { console.log("\n(full text at window.__listing.text)"); }
+})();</script>
+
     <script>
       const $ = (id) => document.getElementById(id);
       const KEY_STORE = "carAuditApiKey";
       const readout = $("readout");
       const setReadout = (state) => { readout.dataset.state = state; };
+
+      // AutoTrader blocks server-side fetches, so for those listings we audit the
+      // page text the user pastes in (extracted via the snippet below) instead.
+      const AUTOTRADER_HOSTS = ["autotrader.ie", "autotrader.co.uk"];
+      const hostOf = (url) => { try { return new URL(url).hostname.toLowerCase(); } catch { return ""; } };
+      const isAutotrader = (url) => {
+        const h = hostOf(url);
+        return AUTOTRADER_HOSTS.some((d) => h === d || h.endsWith("." + d));
+      };
+
+      function updateListingHint() {
+        const hint = $("listingHint");
+        const url = $("url").value.trim();
+        if (isAutotrader(url)) {
+          hint.textContent = "AutoTrader blocks server fetches — paste the page text (required). Copy the script, run it in the listing tab's console, then paste the result.";
+          hint.className = "hint req";
+        } else if (url) {
+          hint.textContent = "Not needed for this site — the backend reads the page itself. Listing text is used only for AutoTrader.";
+          hint.className = "hint";
+        } else {
+          hint.textContent = "Used only for AutoTrader listings.";
+          hint.className = "hint";
+        }
+      }
+
+      const EXTRACTION_SCRIPT = ($("extractScript").textContent || "").trim();
+      $("copyScript").addEventListener("click", async () => {
+        const btn = $("copyScript");
+        try {
+          await navigator.clipboard.writeText(EXTRACTION_SCRIPT);
+          btn.classList.add("copied");
+          btn.textContent = "Copied ✓";
+        } catch {
+          btn.textContent = "Copy failed";
+        }
+        setTimeout(() => { btn.classList.remove("copied"); btn.textContent = "Copy extraction script"; }, 1600);
+      });
+      $("url").addEventListener("input", updateListingHint);
+      updateListingHint();
 
       // remember the API key locally so you only type it once
       $("apiKey").value = localStorage.getItem(KEY_STORE) || "";
@@ -739,14 +834,22 @@
         const url = $("url").value.trim();
         if (!url) { setStatus("Enter a listing URL first.", true); setReadout("error"); return; }
 
+        const listingText = $("listingText").value.trim();
+        if (isAutotrader(url) && !listingText) {
+          setStatus("AutoTrader blocks server fetches — use “Copy extraction script”, run it in the AutoTrader tab's DevTools, then paste the page text below.", true);
+          setReadout("error");
+          $("listingText").focus();
+          return;
+        }
+
         $("result").style.display = "none";
         $("go").disabled = true;
         setReadout("running");
         setStatus("Reading the listing and auditing… (first run can take ~20s)");
 
         const reqBody = { profile: buildProfile(), url };
-        const listingText = $("listingText").value.trim();
-        if (listingText) reqBody.listingText = listingText; // skip the server-side fetch
+        // Only AutoTrader uses the pasted text; other sites are fetched server-side.
+        if (isAutotrader(url)) reqBody.listingText = listingText;
 
         try {
           const res = await fetch("/audit", {
