@@ -13,7 +13,10 @@ import {
   buildExtractionMessage,
 } from "./prompt.ts";
 
-const MODEL = "gemini-3.5-flash";
+// Model per phase, configurable via env. Stage 1 (page read, urlContext) and
+// stage 2 (schema-enforced audit) have different needs, so each is its own var.
+const EXTRACT_MODEL = process.env.GEMINI_EXTRACT_MODEL ?? "gemini-3.5-flash";
+const AUDIT_MODEL = process.env.GEMINI_AUDIT_MODEL ?? "gemini-3.5-flash";
 const EXTRACT_TIMEOUT_MS = 45_000; // urlContext fetch adds latency
 const AUDIT_TIMEOUT_MS = 30_000;
 
@@ -171,7 +174,7 @@ async function extractListing(
   try {
     result = await withTimeout(
       generate({
-        model: MODEL,
+        model: EXTRACT_MODEL,
         contents: buildExtractionMessage(url),
         config: {
           systemInstruction: EXTRACTION_SYSTEM_PROMPT,
@@ -203,7 +206,7 @@ async function auditListing(
   try {
     result = await withTimeout(
       generate({
-        model: MODEL,
+        model: AUDIT_MODEL,
         contents: buildAuditMessage(profile, listing),
         config: {
           systemInstruction: SYSTEM_PROMPT,
