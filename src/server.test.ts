@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { handleRequest, type ServerDeps } from "./server.ts";
-import { AuditError } from "./audit.ts";
+import { AuditError, CapacityError } from "./audit.ts";
 import { DailyRateLimiter } from "./ratelimit.ts";
 import type { Audit } from "./types.ts";
 
@@ -122,6 +122,18 @@ describe("handleRequest", () => {
       failingDeps,
     );
     expect(res.status).toBe(502);
+  });
+
+  test("429 with a message when the global audit cap is reached", async () => {
+    const cappedDeps: ServerDeps = {
+      runAudit: async () => {
+        throw new CapacityError("Service is at today's audit limit — please try again tomorrow.");
+      },
+    };
+    const res = await handleRequest(post({ profile: {}, url: VALID_URL }), cappedDeps);
+    expect(res.status).toBe(429);
+    const body = (await res.json()) as { error?: string };
+    expect(body.error).toContain("today's audit limit");
   });
 
   test("400 when the url host is not an allowed listing site", async () => {

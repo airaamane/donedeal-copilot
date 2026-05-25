@@ -1,0 +1,45 @@
+/* Hallmark · theme: Midnight (atmospheric) · genre: atmospheric
+ * Portable token export for the Car Audit instrument console (public/index.html).
+ * The page inlines these (Bun serves it as a single file at "/"); this file is
+ * the drop-in copy for reusing the system elsewhere. */
+:root {
+  --color-paper:     oklch(15%  0.022 250);
+  --color-paper-2:   oklch(20%  0.024 250);
+  --color-paper-3:   oklch(25%  0.026 250);
+  --color-rule:      oklch(33%  0.024 245);
+  --color-rule-2:    oklch(48%  0.020 240);
+  --color-muted:     oklch(60%  0.018 240);
+  --color-neutral:   oklch(72%  0.014 235);
+  --color-ink-2:     oklch(86%  0.010 230);
+  --color-ink:       oklch(95%  0.008 230);
+  --color-accent:    oklch(72%  0.16  220);
+  --color-on-accent: oklch(17%  0.03  250);
+  --color-focus:     oklch(72%  0.16  220);
+  --color-accent-glow: oklch(72% 0.16 220 / 0.10);
+  --color-accent-ring: oklch(72% 0.16 220 / 0.25);
+
+  /* verdict semantics */
+  --v-good:    oklch(72% 0.16 150);
+  --v-caution: oklch(80% 0.14 80);
+  --v-avoid:   oklch(66% 0.20 25);
+
+  --font-display: "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-body:    "Geist", ui-sans-serif, system-ui, sans-serif;
+  --font-mono:    "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+  --text-xs: 0.75rem;  --text-sm: 0.8125rem; --text-base: 1rem;
+  --text-md: 1.125rem; --text-lg: 1.375rem;  --text-xl: 1.75rem;  --text-2xl: 2.25rem;
+  --text-display: clamp(2.25rem, 4.5vw + 1rem, 3.5rem);
+
+  --tracking-display: -0.03em; --tracking-tight: -0.01em; --tracking-label: 0.16em;
+  --lh-tight: 1.04; --lh-snug: 1.2; --lh-normal: 1.5; --lh-relaxed: 1.6;
+
+  --space-2xs: 0.25rem; --space-xs: 0.5rem; --space-sm: 0.75rem; --space-md: 1rem;
+  --space-lg: 1.5rem;   --space-xl: 2.5rem; --space-2xl: 4rem;
+
+  --page-max: 72rem; --page-gutter: clamp(1.25rem, 4vw, 3rem); --rule-hair: 1px;
+
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-micro: 120ms; --dur-short: 220ms; --dur-long: 420ms;
+}

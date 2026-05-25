@@ -3,6 +3,7 @@
 import { GoogleGenAI } from "@google/genai";
 import type { Audit, Profile } from "./types.ts";
 import { TtlCache, auditCacheKey } from "./cache.ts";
+import { DailyRateLimiter } from "./ratelimit.ts";
 import { createDefaultTracker, type PriceTracker } from "./pricetracker.ts";
 import {
   AUDIT_SCHEMA,
@@ -21,6 +22,17 @@ export class AuditError extends Error {
   constructor(message: string, cause?: unknown) {
     super(message, cause === undefined ? undefined : { cause });
     this.name = "AuditError";
+  }
+}
+
+/**
+ * Thrown when the global daily audit cap is reached. Distinct from AuditError so
+ * the server can answer 429 ("at capacity") rather than 502 ("audit failed").
+ */
+export class CapacityError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "CapacityError";
   }
 }
 
@@ -86,9 +98,26 @@ const defaultAuditCache = new TtlCache<Audit>({
 
 const defaultTracker = createDefaultTracker();
 
+/** Max fresh (cache-missing) audits served per day across all clients — a hard
+ *  ceiling on Gemini spend. Overridable via GLOBAL_DAILY_AUDITS; cache hits and
+ *  client-supplied retries that resolve from cache never count against it. */
+function globalAuditCap(): number {
+  const raw = process.env.GLOBAL_DAILY_AUDITS;
+  if (raw === undefined || raw.trim() === "") return 50;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : 50;
+}
+
+// Single shared window keyed on one constant, so it counts every fresh audit
+// regardless of client. limit <= 0 disables the cap (see DailyRateLimiter).
+const GLOBAL_KEY = "global";
+const defaultGlobalLimiter = new DailyRateLimiter({ limit: globalAuditCap() });
+
 export interface RunAuditCachedOptions extends RunAuditOptions {
   cache?: TtlCache<Audit>;
   tracker?: PriceTracker;
+  /** Caps fresh audits/day across all clients. Injectable for tests. */
+  globalLimiter?: DailyRateLimiter;
 }
 
 /**
@@ -110,6 +139,14 @@ export async function runAuditCached(
 
   const hit = cache.get(key);
   if (hit) return hit;
+
+  // Cache miss → a real (paid) audit is about to run. Count it against the
+  // global daily cap *before* the await, so cache hits stay free and concurrent
+  // misses can't slip past the ceiling.
+  const limiter = opts.globalLimiter ?? defaultGlobalLimiter;
+  if (!limiter.consume(GLOBAL_KEY).allowed) {
+    throw new CapacityError("Service is at today's audit limit — please try again tomorrow.");
+  }
 
   const audit = await runAudit(profile, url, opts);
   // Price tracking is best-effort: never let it fail the audit. (The tracker

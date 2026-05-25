@@ -34,6 +34,15 @@ function normalizeBase(raw) {
   return b;
 }
 
+// The backend to call: a per-browser override (Advanced) wins, otherwise the
+// URL baked into config.js. Normal users never set the override.
+function resolveBase() {
+  const override = normalizeBase($("backendUrl").value);
+  if (override) return override;
+  const builtin = (typeof COPILOT_CONFIG !== "undefined" && COPILOT_CONFIG.backendUrl) || "";
+  return normalizeBase(builtin);
+}
+
 function buildProfile() {
   const p = {};
   for (const id of PROFILE_FIELDS) {
@@ -55,17 +64,14 @@ function setStatus(msg, isError) {
 // --- load / persist state ----------------------------------------------------
 
 async function loadState() {
-  const s = await get(["profile", "backendUrl", "apiKey", "sendPageText", "lastAudit"]);
+  const s = await get(["profile", "backendUrl", "sendPageText", "lastAudit"]);
   const profile = s.profile || {};
   for (const id of PROFILE_FIELDS) {
     const v = profile[id];
     $(id).value = Array.isArray(v) ? v.join(", ") : v ?? "";
   }
   $("backendUrl").value = s.backendUrl || "";
-  $("apiKey").value = s.apiKey || "";
   $("sendPageText").checked = s.sendPageText !== false;
-
-  if (!s.backendUrl) $("connPanel").open = true; // first-run nudge
 
   restoreLastAudit(s.lastAudit);
 }
@@ -74,7 +80,6 @@ function persistProfile() { set({ profile: buildProfile() }); }
 function persistConn() {
   set({
     backendUrl: $("backendUrl").value.trim(),
-    apiKey: $("apiKey").value.trim(),
     sendPageText: $("sendPageText").checked,
   });
 }
@@ -150,11 +155,11 @@ async function ensureBackendPermission(base) {
 
 async function runAudit() {
   const url = $("url").value.trim();
-  const base = normalizeBase($("backendUrl").value);
+  const base = resolveBase();
 
   if (!base) {
-    $("connPanel").open = true;
-    setStatus("Set your backend URL under Connection first.", true);
+    $("advancedPanel").open = true;
+    setStatus("No backend is configured. Set a Backend URL under Advanced.", true);
     return;
   }
   if (!url) { setStatus("Enter or open a listing URL first.", true); return; }
@@ -176,7 +181,6 @@ async function runAudit() {
     type: "audit",
     base,
     url,
-    apiKey: $("apiKey").value.trim(),
     profile: buildProfile(),
     listingText,
   });
@@ -195,31 +199,14 @@ chrome.runtime.onMessage.addListener((msg) => {
   }
 });
 
-// --- connection test ---------------------------------------------------------
-
-async function testConnection() {
-  const base = normalizeBase($("backendUrl").value);
-  const out = $("testResult");
-  if (!base) { out.textContent = "Enter a URL first."; out.className = "test-result err"; return; }
-  persistConn();
-  out.textContent = "Testing…"; out.className = "test-result";
-  await ensureBackendPermission(base);
-  try {
-    const res = await fetch(`${base}/health`, { method: "GET" });
-    const data = await res.json().catch(() => ({}));
-    if (res.ok && data.ok) { out.textContent = "Connected ✓"; out.className = "test-result ok"; }
-    else { out.textContent = `Reachable, status ${res.status}`; out.className = "test-result err"; }
-  } catch (err) {
-    out.textContent = "Couldn't reach the backend."; out.className = "test-result err";
-  }
-}
-
 // --- render (ported from the backend's test console) -------------------------
 
+// Verdict colours reference CSS tokens so the popup stays single-sourced with
+// the instrument theme in popup.css.
 const VERDICT = {
-  good_fit:             { label: "Good fit",              color: "#1e8e3e" },
-  proceed_with_caution: { label: "Proceed with caution",  color: "#f29900" },
-  avoid:                { label: "Avoid",                 color: "#d93025" },
+  good_fit:             { label: "Good fit",              color: "var(--v-good)" },
+  proceed_with_caution: { label: "Proceed with caution",  color: "var(--v-caution)" },
+  avoid:                { label: "Avoid",                 color: "var(--v-avoid)" },
 };
 
 function esc(s) {
@@ -227,7 +214,7 @@ function esc(s) {
 }
 
 function render(audit) {
-  const v = VERDICT[audit.verdict] || { label: audit.verdict, color: "#5f6368" };
+  const v = VERDICT[audit.verdict] || { label: audit.verdict, color: "var(--color-muted)" };
   const score = Math.max(0, Math.min(100, Number(audit.score) || 0));
 
   const chips = (audit.fitChips || []).map((c) =>
@@ -253,11 +240,11 @@ function render(audit) {
   $("result").innerHTML = `
     <div class="card">
       <div class="verdict">
-        <div class="ring" style="background: conic-gradient(${v.color} ${score * 3.6}deg, #ececed 0deg);">
+        <div class="ring" style="background: conic-gradient(${v.color} ${score * 3.6}deg, var(--color-rule) 0deg);">
           <span class="num">${score}</span>
         </div>
         <div class="meta">
-          <span class="badge" style="background:${v.color}22; color:${v.color};">${esc(v.label)}</span>
+          <span class="badge" style="background: color-mix(in oklch, ${v.color} 18%, transparent); color:${v.color};">${esc(v.label)}</span>
           <p class="summary">${esc(audit.summary || "")}</p>
         </div>
       </div>
@@ -292,9 +279,8 @@ function priceBlock(h) {
 // --- wire up -----------------------------------------------------------------
 
 for (const id of PROFILE_FIELDS) $(id).addEventListener("change", persistProfile);
-for (const id of ["backendUrl", "apiKey", "sendPageText"]) $(id).addEventListener("change", persistConn);
+for (const id of ["backendUrl", "sendPageText"]) $(id).addEventListener("change", persistConn);
 $("go").addEventListener("click", runAudit);
-$("test").addEventListener("click", testConnection);
 $("url").addEventListener("keydown", (e) => { if (e.key === "Enter") runAudit(); });
 
 loadState();

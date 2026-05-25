@@ -5,7 +5,7 @@
 // Stateless; auth via a shared X-API-Key header (AUDIT_API_KEY env var).
 
 import { timingSafeEqual } from "node:crypto";
-import { AuditError, runAuditCached, type RunAuditOptions } from "./audit.ts";
+import { AuditError, CapacityError, runAuditCached, type RunAuditOptions } from "./audit.ts";
 import { DailyRateLimiter, type RateLimitResult } from "./ratelimit.ts";
 import type { Audit, AuditRequest, Profile } from "./types.ts";
 
@@ -127,7 +127,7 @@ function intEnv(name: string, fallback: number): number {
 }
 
 const defaultRateLimiter = new DailyRateLimiter({
-  limit: intEnv("RATE_LIMIT_PER_DAY", 25),
+  limit: intEnv("RATE_LIMIT_PER_DAY", 10),
   windowMs: intEnv("RATE_LIMIT_WINDOW_MS", 86_400_000),
 });
 
@@ -222,6 +222,9 @@ export async function handleRequest(
       const audit = await deps.runAudit(body.profile, body.url, { listingText: body.listingText });
       return json(audit, 200, rateLimitHeaders(rl));
     } catch (err) {
+      if (err instanceof CapacityError) {
+        return json({ error: err.message }, 429);
+      }
       if (err instanceof AuditError) {
         console.error("audit failed:", err.message, err.cause ?? "");
         return json({ error: "audit failed" }, 502);

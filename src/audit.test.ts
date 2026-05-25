@@ -1,6 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import {
   AuditError,
+  CapacityError,
   isAudit,
   runAudit,
   runAuditCached,
@@ -8,6 +9,7 @@ import {
   type GenerateFn,
 } from "./audit.ts";
 import { TtlCache } from "./cache.ts";
+import { DailyRateLimiter } from "./ratelimit.ts";
 import type { Audit } from "./types.ts";
 
 const URL = "https://www.donedeal.ie/cars-for-sale/bmw/42108822";
@@ -208,6 +210,39 @@ describe("runAuditCached", () => {
     });
     expect(audit.verdict).toBe(validAudit.verdict);
     expect(audit.priceHistory).toBeUndefined();
+  });
+
+  test("throws CapacityError once the global daily audit cap is reached", async () => {
+    const globalLimiter = new DailyRateLimiter({ limit: 1 });
+    const opts = {
+      generate: stubbed(JSON.stringify(validAudit)),
+      cache: new TtlCache<Audit>(),
+      globalLimiter,
+    };
+    // First fresh audit is within the cap; a second *different* one is over it.
+    await runAuditCached({ budgetMax: 30000 }, URL, opts);
+    await expect(
+      runAuditCached({ budgetMax: 25000 }, URL, opts),
+    ).rejects.toBeInstanceOf(CapacityError);
+  });
+
+  test("cache hits do not count against the global cap", async () => {
+    const globalLimiter = new DailyRateLimiter({ limit: 1 });
+    const cache = new TtlCache<Audit>();
+    const opts = { generate: stubbed(JSON.stringify(validAudit)), cache, globalLimiter };
+
+    // One fresh audit (uses the only slot), then the same request repeatedly —
+    // all served from cache, so the cap is never consumed again.
+    await runAuditCached({ budgetMax: 30000 }, URL, opts);
+    const repeat1 = await runAuditCached({ budgetMax: 30000 }, URL, opts);
+    const repeat2 = await runAuditCached({ budgetMax: 30000 }, URL, opts);
+    expect(repeat1).toEqual(validAudit);
+    expect(repeat2).toEqual(validAudit);
+
+    // A *new* fresh audit is still correctly blocked — the slot was only spent once.
+    await expect(
+      runAuditCached({ budgetMax: 25000 }, URL, opts),
+    ).rejects.toBeInstanceOf(CapacityError);
   });
 });
 

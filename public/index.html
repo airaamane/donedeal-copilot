@@ -3,189 +3,628 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Car Audit — test console</title>
+    <title>Car Audit — instrument console</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500&display=swap"
+      rel="stylesheet"
+    />
     <style>
+      /* Hallmark · genre: atmospheric · macrostructure: Split Studio · theme: Midnight · nav: N9 · footer: Ft2 · enrichment: none (CSS gauge) */
+      /* Hallmark · pre-emit critique: P5 H4 E4 S5 R4 V5 */
+
       :root {
-        --blue: #1a73e8;
-        --green: #1e8e3e;
-        --red: #d93025;
-        --amber: #f29900;
-        --ink: #202124;
-        --muted: #5f6368;
-        --line: #e3e3e6;
-        --bg: #f7f8fa;
+        /* — Midnight palette (cool charcoal · electric-blue instrument accent) — */
+        --color-paper:    oklch(15%  0.022 250);
+        --color-paper-2:  oklch(20%  0.024 250);
+        --color-paper-3:  oklch(25%  0.026 250);
+        --color-rule:     oklch(33%  0.024 245);
+        --color-rule-2:   oklch(48%  0.020 240);
+        --color-muted:    oklch(60%  0.018 240);
+        --color-neutral:  oklch(72%  0.014 235);
+        --color-ink-2:    oklch(86%  0.010 230);
+        --color-ink:      oklch(95%  0.008 230);
+        --color-accent:   oklch(72%  0.16  220);
+        --color-on-accent: oklch(17% 0.03  250);
+        --color-focus:    oklch(72%  0.16  220);
+        --color-accent-glow: oklch(72% 0.16 220 / 0.10);
+        --color-accent-ring: oklch(72% 0.16 220 / 0.25);
+
+        /* Verdict semantics — data colours, deliberately distinct from the
+           cool accent so the gauge reads good / caution / avoid at a glance. */
+        --v-good:    oklch(72% 0.16 150);
+        --v-caution: oklch(80% 0.14 80);
+        --v-avoid:   oklch(66% 0.20 25);
+
+        --font-display: "Geist", ui-sans-serif, system-ui, sans-serif;
+        --font-body:    "Geist", ui-sans-serif, system-ui, sans-serif;
+        --font-mono:    "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+
+        --text-xs:   0.75rem;
+        --text-sm:   0.8125rem;
+        --text-base: 1rem;
+        --text-md:   1.125rem;
+        --text-lg:   1.375rem;
+        --text-xl:   1.75rem;
+        --text-2xl:  2.25rem;
+        --text-display:   clamp(2.25rem, 4.5vw + 1rem, 3.5rem);
+
+        --tracking-display: -0.03em;
+        --tracking-tight:   -0.01em;
+        --tracking-label:   0.16em;
+
+        --lh-tight:   1.04;
+        --lh-snug:    1.2;
+        --lh-normal:  1.5;
+        --lh-relaxed: 1.6;
+
+        --space-2xs: 0.25rem;
+        --space-xs:  0.5rem;
+        --space-sm:  0.75rem;
+        --space-md:  1rem;
+        --space-lg:  1.5rem;
+        --space-xl:  2.5rem;
+        --space-2xl: 4rem;
+
+        --page-max:    72rem;
+        --page-gutter: clamp(1.25rem, 4vw, 3rem);
+        --rule-hair:   1px;
+
+        --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+        --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+        --dur-micro: 120ms;
+        --dur-short: 220ms;
+        --dur-long:  420ms;
+
+        --z-base: 1;
+        --z-sticky: 200;
       }
+
       * { box-sizing: border-box; }
+
+      html, body { overflow-x: clip; }
+
       body {
         margin: 0;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        color: var(--ink);
-        background: var(--bg);
-        line-height: 1.5;
+        min-height: 100dvh;
+        font-family: var(--font-body);
+        font-size: var(--text-base);
+        line-height: var(--lh-normal);
+        color: var(--color-ink-2);
+        background-color: var(--color-paper);
+        /* One restrained instrument glow — cool, fixed, low intensity. */
+        background-image: radial-gradient(
+          60% 55% at 78% 18%,
+          var(--color-accent-glow) 0%,
+          transparent 60%
+        );
+        background-attachment: fixed;
+        -webkit-font-smoothing: antialiased;
       }
-      .wrap { max-width: 760px; margin: 0 auto; padding: 48px 20px 80px; }
-      h1 {
-        text-align: center;
-        font-size: 40px;
+
+      .shell {
+        max-width: var(--page-max);
+        margin: 0 auto;
+        padding: var(--space-lg) var(--page-gutter) var(--space-2xl);
+      }
+
+      /* ── Topbar — N9 edge-aligned minimal ───────────────────────── */
+      .topbar {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-md);
+        padding-block: var(--space-sm);
+        border-bottom: var(--rule-hair) solid var(--color-rule);
+      }
+      .wordmark {
+        display: inline-flex;
+        align-items: baseline;
+        gap: 0.4ch;
+        font-family: var(--font-mono);
         font-weight: 500;
-        letter-spacing: -0.5px;
-        margin: 0 0 4px;
+        font-size: var(--text-sm);
+        letter-spacing: 0.04em;
+        color: var(--color-ink);
       }
-      h1 .a { color: var(--blue); }
-      h1 .b { color: var(--green); }
-      .tag { text-align: center; color: var(--muted); margin: 0 0 32px; font-size: 14px; }
+      .wordmark b { font-weight: 500; }
+      .wordmark .dot { color: var(--color-accent); }
+      .topbar__meta {
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        letter-spacing: var(--tracking-label);
+        text-transform: uppercase;
+        color: var(--color-muted);
+        white-space: nowrap;
+      }
 
+      /* ── Lede ───────────────────────────────────────────────────── */
+      .lede { padding-block: clamp(var(--space-xl), 6vw, var(--space-2xl)) var(--space-xl); max-width: 34ch; }
+      .lede h1 {
+        margin: 0;
+        font-family: var(--font-display);
+        font-weight: 600;
+        font-size: var(--text-display);
+        line-height: var(--lh-tight);
+        letter-spacing: var(--tracking-display);
+        color: var(--color-ink);
+        overflow-wrap: anywhere;
+        min-width: 0;
+      }
+      .lede p {
+        margin: var(--space-md) 0 0;
+        max-width: 48ch;
+        font-size: var(--text-md);
+        color: var(--color-muted);
+      }
+
+      /* ── Cockpit — Split Studio diptych ─────────────────────────── */
+      .cockpit {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: var(--space-lg);
+        align-items: start;
+      }
+
+      .panel {
+        background-color: var(--color-paper-2);
+        border: var(--rule-hair) solid var(--color-rule);
+        padding: clamp(var(--space-md), 3vw, var(--space-xl));
+      }
+      .panel__label {
+        display: flex;
+        align-items: center;
+        gap: 0.6ch;
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        letter-spacing: var(--tracking-label);
+        text-transform: uppercase;
+        color: var(--color-muted);
+        margin-bottom: var(--space-lg);
+      }
+      .panel__label::before {
+        content: "";
+        width: 22px;
+        height: 2px;
+        background: var(--color-accent);
+      }
+
+      /* ── Control panel ──────────────────────────────────────────── */
       .urlbar {
-        display: flex; align-items: center; gap: 10px;
-        background: #fff; border: 1px solid var(--line);
-        border-radius: 999px; padding: 6px 6px 6px 20px;
-        box-shadow: 0 1px 6px rgba(32,33,36,0.12);
-        transition: box-shadow .15s, border-color .15s;
+        display: flex;
+        align-items: center;
+        gap: 0.6ch;
+        background-color: var(--color-paper);
+        border: var(--rule-hair) solid var(--color-rule);
+        padding: 0 var(--space-md);
+        transition: border-color var(--dur-short) var(--ease-out);
       }
-      .urlbar:focus-within { box-shadow: 0 1px 10px rgba(32,33,36,0.2); border-color: transparent; }
-      .urlbar svg { flex: none; color: var(--muted); }
+      .urlbar:focus-within { border-color: var(--color-accent); }
+      .urlbar svg { flex: none; color: var(--color-muted); }
       .urlbar input {
-        flex: 1; border: 0; outline: 0; font-size: 16px; background: transparent; padding: 10px 0;
+        flex: 1;
+        min-width: 0;
+        border: 0;
+        outline: 0;
+        background: transparent;
+        color: var(--color-ink);
+        font-family: var(--font-body);
+        font-size: var(--text-md);
+        padding: var(--space-md) 0;
       }
+      .urlbar input::placeholder { color: var(--color-muted); }
 
-      .card {
-        background: #fff; border: 1px solid var(--line); border-radius: 14px;
-        padding: 20px; margin-top: 20px;
+      fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+
+      .grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        gap: var(--space-md);
+        margin-top: var(--space-lg);
       }
-      .card h2 { font-size: 13px; text-transform: uppercase; letter-spacing: .6px; color: var(--muted); margin: 0 0 16px; font-weight: 600; }
-      .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px 18px; }
-      @media (max-width: 540px) { .grid { grid-template-columns: 1fr; } }
-      .field { display: flex; flex-direction: column; gap: 5px; }
+      .field { display: flex; flex-direction: column; gap: var(--space-2xs); min-width: 0; }
       .field.wide { grid-column: 1 / -1; }
-      label { font-size: 12.5px; color: var(--muted); font-weight: 500; }
+      label {
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: var(--color-muted);
+      }
       input.f, select.f, textarea.f {
-        font-size: 14px; padding: 9px 11px; border: 1px solid var(--line);
-        border-radius: 8px; outline: 0; background: #fff; color: var(--ink); width: 100%;
+        width: 100%;
+        font-family: var(--font-body);
+        font-size: var(--text-base);
+        color: var(--color-ink);
+        background-color: var(--color-paper);
+        border: var(--rule-hair) solid var(--color-rule);
+        padding: var(--space-sm) var(--space-md);
+        outline: 0;
+        transition: border-color var(--dur-short) var(--ease-out);
       }
-      textarea.f { font-family: inherit; resize: vertical; min-height: 84px; }
-      input.f:focus, select.f:focus, textarea.f:focus { border-color: var(--blue); }
+      textarea.f { font-family: inherit; resize: vertical; min-height: 88px; line-height: var(--lh-normal); }
+      select.f { appearance: none; cursor: pointer; }
+      input.f:hover, select.f:hover, textarea.f:hover { border-color: var(--color-rule-2); }
+      input.f:focus-visible, select.f:focus-visible, textarea.f:focus-visible {
+        border-color: var(--color-accent);
+        box-shadow: 0 0 0 3px var(--color-accent-ring);
+      }
 
-      .actions { display: flex; justify-content: center; margin-top: 24px; }
+      .actions { margin-top: var(--space-lg); }
       button.audit {
-        background: var(--blue); color: #fff; border: 0; border-radius: 999px;
-        font-size: 16px; font-weight: 500; padding: 13px 40px; cursor: pointer;
-        transition: filter .15s, transform .05s;
+        width: 100%;
+        font-family: var(--font-mono);
+        font-size: var(--text-sm);
+        font-weight: 500;
+        letter-spacing: var(--tracking-label);
+        text-transform: uppercase;
+        color: var(--color-on-accent);
+        background-color: var(--color-accent);
+        border: 0;
+        padding: var(--space-md) var(--space-lg);
+        cursor: pointer;
+        white-space: nowrap;
+        transition: filter var(--dur-short) var(--ease-out),
+                    transform var(--dur-micro) var(--ease-out);
       }
-      button.audit:hover { filter: brightness(1.05); }
+      button.audit:hover { filter: brightness(1.08); }
       button.audit:active { transform: translateY(1px); }
-      button.audit:disabled { opacity: .55; cursor: default; }
+      button.audit:focus-visible {
+        outline: 2px solid var(--color-focus);
+        outline-offset: 2px;
+      }
+      button.audit:disabled { opacity: 0.5; cursor: progress; filter: none; transform: none; }
 
-      details.settings { margin-top: 14px; }
-      details.settings summary { cursor: pointer; color: var(--muted); font-size: 13px; text-align: center; list-style: none; }
+      details.settings { margin-top: var(--space-lg); border-top: var(--rule-hair) solid var(--color-rule); padding-top: var(--space-md); }
+      details.settings summary {
+        cursor: pointer;
+        list-style: none;
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        letter-spacing: var(--tracking-label);
+        text-transform: uppercase;
+        color: var(--color-muted);
+        transition: color var(--dur-short) var(--ease-out);
+      }
+      details.settings summary:hover { color: var(--color-ink-2); }
       details.settings summary::-webkit-details-marker { display: none; }
-      details.settings .row { margin-top: 12px; }
+      details.settings summary::before { content: "+ "; color: var(--color-accent); }
+      details.settings[open] summary::before { content: "– "; }
+      details.settings .field { margin-top: var(--space-md); }
 
-      /* results */
-      #status { text-align: center; color: var(--muted); margin-top: 24px; min-height: 20px; }
-      #status.error { color: var(--red); }
-      #result { margin-top: 20px; display: none; }
-      .verdict { display: flex; align-items: center; gap: 20px; }
-      .ring {
-        flex: none; width: 96px; height: 96px; border-radius: 50%;
-        display: grid; place-items: center; position: relative;
+      /* ── Readout instrument ─────────────────────────────────────── */
+      .readout { position: sticky; top: var(--space-lg); }
+      .readout__head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: var(--space-md);
+        margin-bottom: var(--space-lg);
       }
-      .ring::before {
-        content: ""; position: absolute; inset: 10px; background: #fff; border-radius: 50%;
+      .readout__head .panel__label { margin: 0; }
+      .readout__state {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5ch;
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        letter-spacing: var(--tracking-label);
+        text-transform: uppercase;
+        color: var(--color-muted);
       }
-      .ring .num { position: relative; font-size: 26px; font-weight: 600; }
-      .verdict .meta { flex: 1; }
+      .readout__state::before {
+        content: "";
+        width: 8px; height: 8px; border-radius: 50%;
+        background: var(--color-rule-2);
+      }
+      .readout[data-state="running"] .readout__state::before { background: var(--color-accent); animation: blink 1s steps(2, jump-none) infinite; }
+      .readout[data-state="done"]    .readout__state::before { background: var(--v-good); }
+      .readout[data-state="error"]   .readout__state::before { background: var(--v-avoid); }
+      .readout__state em { font-style: normal; }
+      .readout[data-state="idle"]    .readout__state em::after { content: "idle"; }
+      .readout[data-state="running"] .readout__state em::after { content: "auditing"; }
+      .readout[data-state="done"]    .readout__state em::after { content: "ready"; }
+      .readout[data-state="error"]   .readout__state em::after { content: "error"; }
+
+      /* Idle / scanning instrument */
+      .idle { display: flex; flex-direction: column; align-items: center; gap: var(--space-lg); padding-block: var(--space-md); }
+      .readout[data-state="done"] .idle { display: none; }
+      .gauge {
+        position: relative;
+        width: 168px; height: 168px;
+        border-radius: 50%;
+        background-color: var(--color-paper-3);
+        border: var(--rule-hair) solid var(--color-rule);
+        display: grid; place-items: center;
+      }
+      .gauge::after {
+        content: "";
+        position: absolute; inset: 9px;
+        border-radius: 50%;
+        background: repeating-conic-gradient(var(--color-rule-2) 0 1deg, transparent 1deg 10deg);
+        -webkit-mask: radial-gradient(circle, transparent 0 66px, #000 66px 73px, transparent 73px);
+                mask: radial-gradient(circle, transparent 0 66px, #000 66px 73px, transparent 73px);
+      }
+      .gauge__needle {
+        position: absolute;
+        bottom: 50%; left: calc(50% - 1.5px);
+        width: 3px; height: 60px;
+        background: var(--color-accent);
+        border-radius: 2px;
+        transform-origin: bottom center;
+        transform: rotate(-120deg);
+      }
+      .readout[data-state="running"] .gauge__needle {
+        animation: scan 1.7s var(--ease-in-out) infinite alternate;
+      }
+      .gauge__face { display: flex; flex-direction: column; align-items: center; line-height: 1; }
+      .gauge__val {
+        font-family: var(--font-mono);
+        font-size: 2.4rem;
+        font-weight: 500;
+        color: var(--color-ink);
+        font-variant-numeric: tabular-nums;
+      }
+      .gauge__unit {
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        letter-spacing: var(--tracking-label);
+        text-transform: uppercase;
+        color: var(--color-muted);
+        margin-top: var(--space-2xs);
+      }
+      .idle__hint { margin: 0; max-width: 32ch; text-align: center; color: var(--color-muted); font-size: var(--text-sm); }
+      .readout:not([data-state="idle"]) .idle__hint { display: none; }
+
+      /* status line */
+      #status { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--color-muted); text-align: center; min-height: 1.2em; }
+      #status.error { color: var(--v-avoid); }
+
+      /* ── Result render (classes consumed by render() in JS) ─────── */
+      #result { display: none; margin-top: var(--space-lg); animation: rise var(--dur-long) var(--ease-out) both; }
+      /* The result lives inside the readout panel — no card-in-card. */
+      #result .card { background: transparent; border: 0; padding: 0; }
+
+      .verdict { display: flex; align-items: center; gap: var(--space-lg); }
+      .verdict .ring {
+        position: relative;
+        flex: none;
+        width: 150px; height: 150px;
+        border-radius: 50%;
+        display: grid; place-items: center;
+      }
+      .verdict .ring::before {
+        content: "";
+        position: absolute; inset: 13px;
+        border-radius: 50%;
+        background: var(--color-paper-2);
+      }
+      .verdict .ring::after {
+        content: "";
+        position: absolute; inset: -9px;
+        border-radius: 50%;
+        background: repeating-conic-gradient(var(--color-rule-2) 0 1deg, transparent 1deg 10deg);
+        -webkit-mask: radial-gradient(circle, transparent 0 80px, #000 80px 85px, transparent 85px);
+                mask: radial-gradient(circle, transparent 0 80px, #000 80px 85px, transparent 85px);
+        z-index: -1;
+      }
+      .verdict .ring .num {
+        position: relative;
+        font-family: var(--font-mono);
+        font-size: 2.3rem;
+        font-weight: 500;
+        color: var(--color-ink);
+        font-variant-numeric: tabular-nums;
+      }
+      .verdict .meta { flex: 1; min-width: 0; }
       .badge {
-        display: inline-block; font-size: 12px; font-weight: 600; padding: 3px 10px;
-        border-radius: 999px; text-transform: uppercase; letter-spacing: .4px;
+        display: inline-block;
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        font-weight: 500;
+        letter-spacing: var(--tracking-label);
+        text-transform: uppercase;
+        padding: var(--space-2xs) var(--space-sm);
       }
-      .verdict .summary { margin: 8px 0 0; color: var(--ink); }
+      .verdict .summary { margin: var(--space-sm) 0 0; color: var(--color-ink-2); }
 
-      .snapshot { color: var(--muted); font-size: 13.5px; margin: 14px 0 4px; font-style: italic; }
+      .snapshot { color: var(--color-muted); font-size: var(--text-sm); margin: var(--space-md) 0 0; font-style: italic; }
 
-      .chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+      .chips { display: flex; flex-wrap: wrap; gap: var(--space-xs); margin-top: var(--space-md); }
       .chip {
-        font-size: 12.5px; font-weight: 600; padding: 5px 11px; border-radius: 999px;
-        border: 1px solid transparent;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5ch;
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        letter-spacing: 0.04em;
+        padding: var(--space-2xs) var(--space-sm);
+        border: var(--rule-hair) solid var(--color-rule);
+        color: var(--color-ink-2);
       }
-      .chip.match    { background: #e6f4ea; color: #1e6b30; }
-      .chip.mismatch { background: #fce8e6; color: #b3261e; }
-      .chip.neutral  { background: #f1f3f4; color: #5f6368; }
+      .chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--color-rule-2); }
+      .chip.match::before    { background: var(--v-good); }
+      .chip.mismatch::before { background: var(--v-avoid); }
+      .chip.neutral::before  { background: var(--color-muted); }
 
-      .flags h3 { font-size: 13px; text-transform: uppercase; letter-spacing: .5px; color: var(--muted); margin: 22px 0 10px; }
-      .star { color: var(--blue); }
-      .item {
-        border: 1px solid var(--line); border-left-width: 4px; border-radius: 8px;
-        padding: 10px 12px; margin-bottom: 8px;
+      .flags { margin-top: var(--space-xl); }
+      .flags h3 {
+        display: flex;
+        align-items: center;
+        gap: 0.6ch;
+        margin: 0 0 var(--space-md);
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        font-weight: 500;
+        letter-spacing: var(--tracking-label);
+        text-transform: uppercase;
+        color: var(--color-muted);
       }
-      .item .t { font-weight: 600; font-size: 14px; }
-      .item .d { font-size: 13.5px; color: var(--muted); margin-top: 2px; }
-      .item.assess { border-left-color: var(--blue); }
-      .item.year { border-left-color: #9334e6; }
-      .item.alt { border-left-color: var(--green); }
+      .star { color: var(--color-accent); }
+
+      .item {
+        border: var(--rule-hair) solid var(--color-rule);
+        background-color: var(--color-paper);
+        padding: var(--space-sm) var(--space-md);
+        margin-bottom: var(--space-xs);
+      }
+      .item .t {
+        display: flex;
+        align-items: baseline;
+        flex-wrap: wrap;
+        gap: 0.6ch;
+        font-weight: 500;
+        color: var(--color-ink);
+      }
+      .item .t::before { content: ""; align-self: center; width: 7px; height: 7px; flex: none; background: var(--color-rule-2); }
+      .item.assess .t::before { background: var(--color-accent); }
+      .item.year   .t::before { background: var(--color-neutral); }
+      .item.alt    .t::before { background: var(--v-good); }
+      .item .d { font-size: var(--text-sm); color: var(--color-muted); margin-top: var(--space-2xs); }
       .alt-tag {
-        font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 999px;
-        margin-left: 8px; vertical-align: middle; background: #e8f0fe; color: #1967d2;
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        letter-spacing: 0.04em;
+        color: var(--color-muted);
+        border: var(--rule-hair) solid var(--color-rule);
+        padding: 0 var(--space-xs);
+      }
+      .item code { font-family: var(--font-mono); font-size: 0.95em; color: var(--color-ink-2); }
+
+      /* ── Footer — Ft2 inline single line ────────────────────────── */
+      .foot {
+        margin-top: var(--space-2xl);
+        padding-top: var(--space-md);
+        border-top: var(--rule-hair) solid var(--color-rule);
+        font-family: var(--font-mono);
+        font-size: var(--text-xs);
+        letter-spacing: 0.04em;
+        color: var(--color-muted);
+      }
+
+      /* ── Motion keyframes ───────────────────────────────────────── */
+      @keyframes reveal { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+      @keyframes rise   { from { opacity: 0; transform: translateY(8px); }  to { opacity: 1; transform: none; } }
+      @keyframes scan   { from { transform: rotate(-120deg); } to { transform: rotate(120deg); } }
+      @keyframes blink  { 50% { opacity: 0.35; } }
+
+      .lede, .cockpit > .panel { animation: reveal var(--dur-long) var(--ease-out) both; }
+      .cockpit > .panel:nth-child(1) { animation-delay: 60ms; }
+      .cockpit > .panel:nth-child(2) { animation-delay: 140ms; }
+
+      /* ── Responsive ─────────────────────────────────────────────── */
+      @media (max-width: 860px) {
+        .cockpit { grid-template-columns: minmax(0, 1fr); }
+        .readout { position: static; }
+      }
+      @media (max-width: 520px) {
+        .grid { grid-template-columns: minmax(0, 1fr); }
+        .verdict { flex-direction: column; align-items: flex-start; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after {
+          animation-duration: 0.001ms !important;
+          animation-iteration-count: 1 !important;
+          transition-duration: 0.001ms !important;
+        }
+        .readout[data-state="running"] .gauge__needle { animation: none; }
       }
     </style>
   </head>
   <body>
-    <div class="wrap">
-      <h1><span class="a">Car</span> <span class="b">Audit</span></h1>
-      <p class="tag">Paste a listing URL, set your profile, and run an AI audit.</p>
+    <div class="shell">
+      <header class="topbar">
+        <span class="wordmark">Car<b>Audit</b><span class="dot">.</span></span>
+        <span class="topbar__meta">Instrument console</span>
+      </header>
 
-      <div class="urlbar">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
-          <circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-        </svg>
-        <input id="url" type="url" placeholder="https://www.donedeal.ie/cars-for-sale/..." autocomplete="off" />
+      <div class="lede">
+        <h1>Read a listing like a mechanic.</h1>
+        <p>Set your buyer profile, drop in a DoneDeal or AutoTrader URL, and run the AI audit. The verdict lands on the right.</p>
       </div>
 
-      <div class="card">
-        <h2>Your profile</h2>
-        <div class="grid">
-          <div class="field"><label for="budgetMax">Max budget (€)</label><input id="budgetMax" class="f" type="number" min="0" placeholder="30000" /></div>
-          <div class="field"><label for="financePerMonthMax">Max finance / month (€)</label><input id="financePerMonthMax" class="f" type="number" min="0" placeholder="610" /></div>
-          <div class="field">
-            <label for="fuel">Fuel</label>
-            <select id="fuel" class="f">
-              <option value="">Any</option><option>petrol</option><option>diesel</option><option>hybrid</option><option>ev</option>
-            </select>
-          </div>
-          <div class="field">
-            <label for="transmission">Transmission</label>
-            <select id="transmission" class="f">
-              <option value="">Any</option><option>automatic</option><option>manual</option>
-            </select>
-          </div>
-          <div class="field"><label for="maxMileageKm">Max mileage (km)</label><input id="maxMileageKm" class="f" type="number" min="0" placeholder="130000" /></div>
-          <div class="field"><label for="minYear">Earliest year</label><input id="minYear" class="f" type="number" min="1990" placeholder="2018" /></div>
-          <div class="field wide"><label for="use">Intended use</label><input id="use" class="f" type="text" placeholder="family commuting" /></div>
-          <div class="field wide"><label for="mustHaves">Must-haves (comma separated)</label><input id="mustHaves" class="f" type="text" placeholder="Apple CarPlay, heated seats" /></div>
-          <div class="field wide"><label for="dealBreakers">Deal-breakers (comma separated)</label><input id="dealBreakers" class="f" type="text" placeholder="cat write-off, timing belt due" /></div>
-          <div class="field wide"><label for="notes">Other notes</label><input id="notes" class="f" type="text" placeholder="prefer a dealer with good reviews" /></div>
-          <div class="field wide"><label for="listingText">Listing text (optional — paste page text to skip the server fetch, e.g. for AutoTrader UK)</label><textarea id="listingText" class="f" placeholder="Paste the listing page text here. When filled, the backend audits this instead of fetching the URL."></textarea></div>
-        </div>
+      <main class="cockpit">
+        <!-- LEFT — controls -->
+        <section class="panel">
+          <span class="panel__label">Control</span>
 
-        <details class="settings">
-          <summary>API key &amp; settings</summary>
-          <div class="row field">
-            <label for="apiKey">X-API-Key (only needed if the server has AUDIT_API_KEY set)</label>
-            <input id="apiKey" class="f" type="password" placeholder="paste AUDIT_API_KEY" autocomplete="off" />
+          <div class="urlbar">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round">
+              <circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+            <input id="url" type="url" placeholder="https://www.donedeal.ie/cars-for-sale/…" autocomplete="off" />
           </div>
-        </details>
 
-        <div class="actions">
-          <button id="go" class="audit">AUDIT</button>
-        </div>
-      </div>
+          <fieldset class="grid">
+            <div class="field"><label for="budgetMax">Max budget (€)</label><input id="budgetMax" class="f" type="number" min="0" placeholder="30000" /></div>
+            <div class="field"><label for="financePerMonthMax">Finance / mo (€)</label><input id="financePerMonthMax" class="f" type="number" min="0" placeholder="610" /></div>
+            <div class="field">
+              <label for="fuel">Fuel</label>
+              <select id="fuel" class="f">
+                <option value="">Any</option><option>petrol</option><option>diesel</option><option>hybrid</option><option>ev</option>
+              </select>
+            </div>
+            <div class="field">
+              <label for="transmission">Transmission</label>
+              <select id="transmission" class="f">
+                <option value="">Any</option><option>automatic</option><option>manual</option>
+              </select>
+            </div>
+            <div class="field"><label for="maxMileageKm">Max mileage (km)</label><input id="maxMileageKm" class="f" type="number" min="0" placeholder="130000" /></div>
+            <div class="field"><label for="minYear">Earliest year</label><input id="minYear" class="f" type="number" min="1990" placeholder="2018" /></div>
+            <div class="field wide"><label for="use">Intended use</label><input id="use" class="f" type="text" placeholder="family commuting" /></div>
+            <div class="field wide"><label for="mustHaves">Must-haves (comma separated)</label><input id="mustHaves" class="f" type="text" placeholder="Apple CarPlay, heated seats" /></div>
+            <div class="field wide"><label for="dealBreakers">Deal-breakers (comma separated)</label><input id="dealBreakers" class="f" type="text" placeholder="cat write-off, timing belt due" /></div>
+            <div class="field wide"><label for="notes">Other notes</label><input id="notes" class="f" type="text" placeholder="prefer a dealer with good reviews" /></div>
+            <div class="field wide"><label for="listingText">Listing text (optional — paste page text to skip the server fetch, e.g. AutoTrader UK)</label><textarea id="listingText" class="f" placeholder="Paste the listing page text here. When filled, the backend audits this instead of fetching the URL."></textarea></div>
+          </fieldset>
 
-      <div id="status"></div>
-      <div id="result"></div>
+          <details class="settings">
+            <summary>API key &amp; settings</summary>
+            <div class="field">
+              <label for="apiKey">X-API-Key (only if the server sets AUDIT_API_KEY)</label>
+              <input id="apiKey" class="f" type="password" placeholder="paste AUDIT_API_KEY" autocomplete="off" />
+            </div>
+          </details>
+
+          <div class="actions">
+            <button id="go" class="audit">Run audit</button>
+          </div>
+        </section>
+
+        <!-- RIGHT — readout instrument -->
+        <section class="panel readout" id="readout" data-state="idle">
+          <div class="readout__head">
+            <span class="panel__label">Readout</span>
+            <span class="readout__state"><em></em></span>
+          </div>
+
+          <div class="idle">
+            <div class="gauge" aria-hidden="true">
+              <span class="gauge__needle"></span>
+              <span class="gauge__face">
+                <span class="gauge__val">—</span>
+                <span class="gauge__unit">fit score</span>
+              </span>
+            </div>
+            <p class="idle__hint">No audit yet. Fill in your brief and a listing URL, then run the audit — first run takes ~20s.</p>
+          </div>
+
+          <div id="status"></div>
+          <div id="result"></div>
+        </section>
+      </main>
+
+      <footer class="foot">Car Audit · local test console · audits run against your own backend at <code>/audit</code>.</footer>
     </div>
 
     <script>
       const $ = (id) => document.getElementById(id);
       const KEY_STORE = "carAuditApiKey";
+      const readout = $("readout");
+      const setReadout = (state) => { readout.dataset.state = state; };
 
       // remember the API key locally so you only type it once
       $("apiKey").value = localStorage.getItem(KEY_STORE) || "";
@@ -212,10 +651,11 @@
         return p;
       }
 
+      // Verdict colours reference CSS tokens so the page stays single-sourced.
       const VERDICT = {
-        good_fit:             { label: "Good fit",            color: "#1e8e3e" },
-        proceed_with_caution: { label: "Proceed with caution", color: "#f29900" },
-        avoid:                { label: "Avoid",               color: "#d93025" },
+        good_fit:             { label: "Good fit",             color: "var(--v-good)" },
+        proceed_with_caution: { label: "Proceed with caution", color: "var(--v-caution)" },
+        avoid:                { label: "Avoid",                color: "var(--v-avoid)" },
       };
 
       function setStatus(msg, isError) {
@@ -225,7 +665,7 @@
       }
 
       function render(audit) {
-        const v = VERDICT[audit.verdict] || { label: audit.verdict, color: "#5f6368" };
+        const v = VERDICT[audit.verdict] || { label: audit.verdict, color: "var(--color-muted)" };
         const score = Math.max(0, Math.min(100, Number(audit.score) || 0));
 
         const chips = (audit.fitChips || []).map((c) =>
@@ -251,11 +691,11 @@
         $("result").innerHTML = `
           <div class="card">
             <div class="verdict">
-              <div class="ring" style="background: conic-gradient(${v.color} ${score * 3.6}deg, #ececed 0deg);">
+              <div class="ring" style="background: conic-gradient(${v.color} ${score * 3.6}deg, var(--color-rule) 0deg);">
                 <span class="num">${score}</span>
               </div>
               <div class="meta">
-                <span class="badge" style="background:${v.color}22; color:${v.color};">${v.label}</span>
+                <span class="badge" style="background: color-mix(in oklch, ${v.color} 18%, transparent); color:${v.color};">${v.label}</span>
                 <p class="summary">${esc(audit.summary || "")}</p>
               </div>
             </div>
@@ -267,6 +707,7 @@
             ${priceBlock(audit.priceHistory)}
           </div>`;
         $("result").style.display = "block";
+        setReadout("done");
       }
 
       // Price tracking is only present when DATABASE_URL is set AND the audit
@@ -296,10 +737,11 @@
 
       async function audit() {
         const url = $("url").value.trim();
-        if (!url) { setStatus("Enter a listing URL first.", true); return; }
+        if (!url) { setStatus("Enter a listing URL first.", true); setReadout("error"); return; }
 
         $("result").style.display = "none";
         $("go").disabled = true;
+        setReadout("running");
         setStatus("Reading the listing and auditing… (first run can take ~20s)");
 
         const reqBody = { profile: buildProfile(), url };
@@ -313,11 +755,12 @@
             body: JSON.stringify(reqBody),
           });
           const data = await res.json();
-          if (!res.ok) { setStatus(`Error ${res.status}: ${data.error || "request failed"}`, true); return; }
+          if (!res.ok) { setStatus(`Error ${res.status}: ${data.error || "request failed"}`, true); setReadout("error"); return; }
           setStatus("");
           render(data);
         } catch (err) {
           setStatus("Network error: " + err.message, true);
+          setReadout("error");
         } finally {
           $("go").disabled = false;
         }

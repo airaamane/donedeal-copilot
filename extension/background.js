@@ -13,19 +13,16 @@ chrome.runtime.onMessage.addListener((msg) => {
   return false;
 });
 
-async function runAudit({ base, url, apiKey, profile, listingText }) {
+async function runAudit({ base, url, profile, listingText }) {
   await setStore({ lastAudit: { status: "running", url, ts: Date.now() } });
 
   const body = { profile: profile || {}, url };
   if (listingText) body.listingText = listingText;
 
-  const headers = { "Content-Type": "application/json" };
-  if (apiKey) headers["X-API-Key"] = apiKey;
-
   try {
     const res = await fetch(`${base}/audit`, {
       method: "POST",
-      headers,
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
 
@@ -34,8 +31,10 @@ async function runAudit({ base, url, apiKey, profile, listingText }) {
 
     if (!res.ok) {
       const detail = (data && data.error) || `request failed (${res.status})`;
+      // The backend explains 429s precisely (per-IP limit vs global capacity),
+      // so prefer its message; fall back to a generic one if the body is empty.
       const msg = res.status === 429
-        ? "Daily request limit reached — try again later."
+        ? (data && data.error) || "Daily request limit reached — try again later."
         : `Error ${res.status}: ${detail}`;
       return finish(url, { ok: false, error: msg });
     }
