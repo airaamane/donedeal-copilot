@@ -4,5 +4,5 @@
 // before packaging (it's just a URL — no secret lives here). Loaded by popup.html
 // before popup.js; a per-browser override under "Advanced" takes precedence.
 const COPILOT_CONFIG = {
-  backendUrl: "https://donedeal-copilot-production.up.railway.app",
+  backendUrl: "https://aimechanic.up.railway.app",
 };
