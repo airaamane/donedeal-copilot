@@ -9,8 +9,10 @@ export interface Profile {
   preferredMakes?: string[];
   maxMileageKm?: number;
   minYear?: number;
-  transmission?: "automatic" | "manual" | "any";
-  fuel?: "petrol" | "diesel" | "hybrid" | "ev" | "any";
+  // Single value or a multi-select list (the console sends arrays; rendered as a
+  // comma-joined list in the prompt). "any" / omitted means no preference.
+  transmission?: "automatic" | "manual" | "any" | ("automatic" | "manual")[];
+  fuel?: "petrol" | "diesel" | "hybrid" | "ev" | "any" | ("petrol" | "diesel" | "hybrid" | "ev")[];
   mustHaves?: string[]; // ["Apple CarPlay", "heated seats"]
   dealBreakers?: string[]; // ["cat write-off", "timing belt due"]
   notes?: string; // free-text priorities

@@ -94,7 +94,13 @@ function isHttpUrl(value: string): boolean {
 
 // --- Listing-site allow-list -------------------------------------------------
 
-const DEFAULT_ALLOWED_HOSTS = ["donedeal.ie", "autotrader.ie", "autotrader.co.uk"];
+const DEFAULT_ALLOWED_HOSTS = [
+  "donedeal.ie",
+  "autotrader.ie",
+  "autotrader.co.uk",
+  "carsireland.ie",
+  "carzone.ie",
+];
 
 /** Parsed ALLOWED_LISTING_HOSTS, or null when set to "*" (any host allowed). */
 function parseAllowedHosts(): string[] | null {

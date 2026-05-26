@@ -51,8 +51,8 @@ The server listens on `PORT` (default `8787`). Open
 | `GET`  | `/`       | Local test console (HTML).                           |
 
 The listing `url` host must be on the allow-list (`donedeal.ie`,
-`autotrader.ie`, `autotrader.co.uk` by default — configurable via
-`ALLOWED_LISTING_HOSTS`). Requests are rate-limited per client IP.
+`autotrader.ie`, `autotrader.co.uk`, `carsireland.ie`, `carzone.ie` by default —
+configurable via `ALLOWED_LISTING_HOSTS`). Requests are rate-limited per client IP.
 
 ## Testing
 

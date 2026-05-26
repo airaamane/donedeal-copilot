@@ -152,6 +152,13 @@ describe("handleRequest", () => {
     expect(res.status).toBe(200);
   });
 
+  test("allows carsireland.ie and carzone.ie listings", async () => {
+    for (const url of ["https://www.carsireland.ie/used-cars/123", "https://www.carzone.ie/used-cars/456"]) {
+      const res = await handleRequest(post({ profile: {}, url }), okDeps);
+      expect(res.status).toBe(200);
+    }
+  });
+
   test("429 once the per-IP daily limit is exceeded", async () => {
     const deps: ServerDeps = {
       runAudit: async () => sampleAudit,

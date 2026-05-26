@@ -28,6 +28,8 @@
   "host_permissions": [
     "https://*.donedeal.ie/*",
     "https://*.autotrader.ie/*",
-    "https://*.autotrader.co.uk/*"
+    "https://*.autotrader.co.uk/*",
+    "https://*.carsireland.ie/*",
+    "https://*.carzone.ie/*"
   ]
 }

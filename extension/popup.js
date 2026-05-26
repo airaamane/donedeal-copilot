@@ -3,7 +3,7 @@
 const $ = (id) => document.getElementById(id);
 
 // Hosts the backend will accept (mirrors ALLOWED_LISTING_HOSTS on the server).
-const SUPPORTED_HOSTS = ["donedeal.ie", "autotrader.ie", "autotrader.co.uk"];
+const SUPPORTED_HOSTS = ["donedeal.ie", "autotrader.ie", "autotrader.co.uk", "carsireland.ie", "carzone.ie"];
 // Keep under the server's MAX_LISTING_TEXT_CHARS (100_000).
 const MAX_TEXT_CHARS = 95_000;
 
