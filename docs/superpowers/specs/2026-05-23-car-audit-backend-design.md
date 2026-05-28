@@ -59,13 +59,14 @@ Response: application/json  (single structured Audit object — see schema below
   startup warning). See `.env.example` for the key-generation command.
 - **CORS:** `ALLOWED_ORIGIN` env var (default `*`); lock to the extension origin
   once its ID is known.
-- **Validation:** `url` must be a valid http(s) URL whose host is on the listing
-  allow-list (`ALLOWED_LISTING_HOSTS`, default `donedeal.ie`, `autotrader.ie`,
-  `autotrader.co.uk`, subdomains included; `*` allows any host); `profile` must be
-  an object.
-- **Rate limit:** per-IP fixed-window limiter (`RATE_LIMIT_PER_DAY`, default 25;
+- **Validation:** `url` must be a valid http(s) URL matching a supported
+  car-listing detail route — `donedeal.ie/cars-for-sale/…` or
+  `autotrader.co.uk/car-details/…` (subdomains included; host **and** path are
+  both checked, see `LISTING_ROUTES` in `src/server.ts`). Any other URL is
+  rejected with `400` before any Gemini call; `profile` must be an object.
+- **Rate limit:** per-IP fixed-window limiter (`RATE_LIMIT_PER_DAY`, default 10;
   `RATE_LIMIT_WINDOW_MS`, default 24h; `0` disables). Checked after validation and
-  before the Gemini calls, so only valid, allowed-host audit attempts count
+  before the Gemini calls, so only valid, in-route audit attempts count
   (including cache hits). Over-limit requests get `429` with `Retry-After` and
   `X-RateLimit-*` headers. Behind a proxy, set `TRUST_PROXY` so the client IP is
   read from `X-Forwarded-For` rather than the shared proxy socket IP.
@@ -180,8 +181,8 @@ interface Audit {
 
 ## Error handling
 
-- `400` — missing/invalid `url` (must be http(s)), disallowed listing host, or
-  non-object `profile`
+- `400` — missing/invalid `url` (must be http(s)), a URL that isn't a supported
+  car-listing detail route, or non-object `profile`
 - `401` — missing or wrong `X-API-Key` (when `AUDIT_API_KEY` is set)
 - `429` — per-IP daily request limit reached (with `Retry-After` header)
 - `502` — Gemini call failure, empty/non-JSON output, or schema-invalid output;
@@ -200,9 +201,9 @@ interface Audit {
 
 - No database, no profile storage, no accounts.
 - No shared/persistent cache (the in-memory cache above is process-local).
-- Rate limiting and the host allow-list are process-local too — limits are
-  enforced per instance, so horizontal scaling needs a shared store (e.g. Redis)
-  to enforce a global per-IP limit.
+- Rate limiting is process-local too — limits are enforced per instance, so
+  horizontal scaling needs a shared store (e.g. Redis) to enforce a global per-IP
+  limit.
 - No multi-site adapters yet — the URL-in contract keeps it site-agnostic, but the
-  allow-list restricts hosts to the supported listing sites (extend via
-  `ALLOWED_LISTING_HOSTS`), subject to the urlContext trade-off above.
+  route allow-list (`LISTING_ROUTES` in `src/server.ts`) restricts audits to the
+  two supported listing-detail routes, subject to the urlContext trade-off above.

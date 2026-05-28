@@ -2,17 +2,19 @@
 
 const $ = (id) => document.getElementById(id);
 
-// Hosts the backend will accept (mirrors ALLOWED_LISTING_HOSTS on the server).
-const SUPPORTED_HOSTS = ["donedeal.ie", "autotrader.ie", "autotrader.co.uk", "carsireland.ie", "carzone.ie"];
+// Listing-detail routes we audit (host + path prefix). Mirrors LISTING_ROUTES in
+// the backend's server.ts; the audit button is only live on these exact pages.
+const LISTING_ROUTES = [
+  { host: "donedeal.ie", prefix: "/cars-for-sale/" },
+  { host: "autotrader.co.uk", prefix: "/car-details/" },
+];
 // Keep under the server's MAX_LISTING_TEXT_CHARS (100_000).
 const MAX_TEXT_CHARS = 95_000;
 
-const PROFILE_FIELDS = [
-  "budgetMax", "financePerMonthMax", "fuel", "transmission",
-  "maxMileageKm", "minYear", "use", "mustHaves", "dealBreakers", "notes",
-];
+// Plain text/number profile fields. Fuel, transmission, and must-haves are chip
+// groups (read separately); deal-breakers fold into the free-text notes.
+const TEXT_FIELDS = ["budgetMax", "financePerMonthMax", "maxMileageKm", "minYear", "use", "notes"];
 const NUMERIC = new Set(["budgetMax", "financePerMonthMax", "maxMileageKm", "minYear"]);
-const LIST = new Set(["mustHaves", "dealBreakers"]);
 
 // --- storage -----------------------------------------------------------------
 
@@ -20,13 +22,34 @@ const store = chrome.storage.local;
 const get = (keys) => new Promise((res) => store.get(keys, res));
 const set = (obj) => new Promise((res) => store.set(obj, res));
 
+// In-memory copy of the per-URL audit map (background.js owns the writes).
+let auditsCache = {};
+
 // --- helpers -----------------------------------------------------------------
 
 function hostOf(url) {
   try { return new URL(url).hostname.toLowerCase(); } catch { return ""; }
 }
-function isSupportedHost(host) {
-  return SUPPORTED_HOSTS.some((h) => host === h || host.endsWith(`.${h}`));
+// True only for the specific car-listing detail pages we audit (host + path).
+function isAuditableUrl(url) {
+  let u;
+  try { u = new URL(url); } catch { return false; }
+  if (u.protocol !== "https:" && u.protocol !== "http:") return false;
+  const host = u.hostname.toLowerCase();
+  const path = u.pathname.toLowerCase();
+  return LISTING_ROUTES.some(
+    (r) => (host === r.host || host.endsWith(`.${r.host}`)) && path.startsWith(r.prefix),
+  );
+}
+// Normalize a listing URL to host + path (drop query/hash) so the same car
+// matches across tracking params. Must mirror urlKey() in background.js.
+function urlKey(url) {
+  try {
+    const u = new URL(url);
+    return (u.host + u.pathname).toLowerCase().replace(/\/+$/, "");
+  } catch {
+    return (url || "").toLowerCase();
+  }
 }
 function normalizeBase(raw) {
   let b = (raw || "").trim().replace(/\/+$/, "");
@@ -34,24 +57,69 @@ function normalizeBase(raw) {
   return b;
 }
 
-// The backend to call: a per-browser override (Advanced) wins, otherwise the
-// URL baked into config.js. Normal users never set the override.
+// The backend to call: the URL baked into config.js.
 function resolveBase() {
-  const override = normalizeBase($("backendUrl").value);
-  if (override) return override;
   const builtin = (typeof COPILOT_CONFIG !== "undefined" && COPILOT_CONFIG.backendUrl) || "";
   return normalizeBase(builtin);
 }
 
+// --- chip groups (multi-select fuel / transmission / must-haves) -------------
+
+function chipGroup(group) {
+  return document.querySelector(`.chipgroup[data-group="${group}"]`);
+}
+function chipValues(group) {
+  return [...document.querySelectorAll(`.chipgroup[data-group="${group}"] [aria-pressed="true"]`)]
+    .map((b) => b.dataset.value);
+}
+
+// Inline freeform must-have: creates a selected chip before the "+ Add" input.
+function addMustHave(value) {
+  value = String(value).trim();
+  if (!value) return;
+  const grp = chipGroup("mustHaves");
+  const existing = [...grp.querySelectorAll(".chip-btn")]
+    .find((b) => b.dataset.value.toLowerCase() === value.toLowerCase());
+  if (existing) { existing.setAttribute("aria-pressed", "true"); return; }
+  const btn = document.createElement("button");
+  btn.type = "button";
+  btn.className = "chip-btn";
+  btn.dataset.value = value;
+  btn.dataset.custom = "true";
+  btn.setAttribute("aria-pressed", "true");
+  btn.textContent = value;
+  grp.insertBefore(btn, $("mustHaveAdd"));
+}
+
+// Restore a saved chip selection: press known chips, recreate custom must-haves.
+function applyChipSelection(group, values) {
+  const grp = chipGroup(group);
+  if (!grp) return;
+  grp.querySelectorAll('.chip-btn[data-custom="true"]').forEach((b) => b.remove());
+  grp.querySelectorAll(".chip-btn").forEach((b) => b.setAttribute("aria-pressed", "false"));
+  // Tolerate a legacy scalar value (older builds saved fuel/transmission as a string).
+  const list = Array.isArray(values) ? values : values ? [values] : [];
+  for (const val of list) {
+    const existing = [...grp.querySelectorAll(".chip-btn")]
+      .find((b) => b.dataset.value.toLowerCase() === String(val).toLowerCase());
+    if (existing) existing.setAttribute("aria-pressed", "true");
+    else if (group === "mustHaves") addMustHave(val);
+  }
+}
+
 function buildProfile() {
   const p = {};
-  for (const id of PROFILE_FIELDS) {
+  for (const id of TEXT_FIELDS) {
     const v = $(id).value.trim();
     if (v === "") continue;
-    if (NUMERIC.has(id)) p[id] = Number(v);
-    else if (LIST.has(id)) p[id] = v.split(",").map((s) => s.trim()).filter(Boolean);
-    else p[id] = v;
+    p[id] = NUMERIC.has(id) ? Number(v) : v;
   }
+  const fuel = chipValues("fuel");
+  const transmission = chipValues("transmission");
+  const mustHaves = chipValues("mustHaves");
+  if (fuel.length) p.fuel = fuel;
+  if (transmission.length) p.transmission = transmission;
+  if (mustHaves.length) p.mustHaves = mustHaves;
   return p;
 }
 
@@ -61,39 +129,75 @@ function setStatus(msg, isError) {
   el.className = isError ? "error" : "";
 }
 
+// The "running" indicator: an animated sparkle + label shown while an audit is
+// in flight (set as HTML, not text, so the inline SVG renders).
+const SPARKLE_SVG =
+  '<svg class="spark" xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path fill-rule="evenodd" clip-rule="evenodd" d="M19.954 0H19l-1 3-3 1v1l3 1 1 3h.954L21 6l3-1V4l-3-1-1.046-3ZM9.907 6H8l-2 6-6 2v2l6 2 2 6h1.907L12 18l6-2v-2l-6-2-2.093-6Z"></path></svg>';
+
+function setRunning() {
+  const el = $("status");
+  el.className = "running";
+  el.innerHTML = `${SPARKLE_SVG}<span>AI mechanic is running checks…</span>`;
+}
+
+function clearResult() {
+  const r = $("result");
+  r.style.display = "none";
+  r.innerHTML = "";
+}
+
 // --- load / persist state ----------------------------------------------------
 
 async function loadState() {
-  const s = await get(["profile", "backendUrl", "sendPageText", "lastAudit"]);
+  const s = await get(["profile", "sendPageText", "audits"]);
   const profile = s.profile || {};
-  for (const id of PROFILE_FIELDS) {
-    const v = profile[id];
-    $(id).value = Array.isArray(v) ? v.join(", ") : v ?? "";
-  }
-  $("backendUrl").value = s.backendUrl || "";
+  for (const id of TEXT_FIELDS) $(id).value = profile[id] ?? "";
+  applyChipSelection("fuel", profile.fuel);
+  applyChipSelection("transmission", profile.transmission);
+  applyChipSelection("mustHaves", profile.mustHaves);
   $("sendPageText").checked = s.sendPageText !== false;
-
-  restoreLastAudit(s.lastAudit);
+  auditsCache = s.audits && typeof s.audits === "object" ? s.audits : {};
 }
 
 function persistProfile() { set({ profile: buildProfile() }); }
-function persistConn() {
-  set({
-    backendUrl: $("backendUrl").value.trim(),
-    sendPageText: $("sendPageText").checked,
-  });
+function persistConn() { set({ sendPageText: $("sendPageText").checked }); }
+
+// Show the stored audit for whatever listing is currently in the URL box — or a
+// clean slate if none. Called on open and whenever the URL changes, so a result
+// only ever appears on the car it describes.
+function refreshResult() {
+  const url = $("url").value.trim();
+  const auditable = isAuditableUrl(url);
+  const entry = url ? auditsCache[urlKey(url)] : null;
+
+  clearResult();
+  setStatus("");
+
+  let running = false;
+  if (entry) {
+    if (entry.status === "done" && entry.data) {
+      render(entry.data);
+    } else if (entry.status === "running" && Date.now() - entry.ts < 90_000) {
+      setRunning();
+      running = true;
+    } else if (entry.status === "error") {
+      setStatus(entry.error || "Last audit failed.", true);
+    }
+  }
+
+  // Only the supported listing-detail pages get a live audit button.
+  $("go").disabled = running || !auditable;
+  updateSiteNote(url, auditable);
 }
 
-function restoreLastAudit(last) {
-  if (!last) return;
-  if (last.status === "running" && Date.now() - last.ts < 90_000) {
-    setStatus("Auditing… (this can take ~20s on a first run)");
-    $("go").disabled = true;
-  } else if (last.status === "done" && last.data) {
-    render(last.data);
-  } else if (last.status === "error") {
-    setStatus(last.error || "Last audit failed.", true);
+// The guidance line under the URL bar.
+function updateSiteNote(url, auditable) {
+  if (auditable) { setNote("Ready to audit this listing.", "ok"); return; }
+  if (url) {
+    setNote("Not an auditable page — open a DoneDeal ad (donedeal.ie/cars-for-sale/…) or an AutoTrader UK car-details page.", "warn");
+    return;
   }
+  setNote("Open a DoneDeal or AutoTrader UK car listing, or paste its URL above.", "");
 }
 
 // --- active tab --------------------------------------------------------------
@@ -104,14 +208,8 @@ async function initActiveTab() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab) return;
   activeTabId = tab.id ?? null;
-  const url = tab.url || "";
-  const host = hostOf(url);
-  if (isSupportedHost(host)) {
-    if (!$("url").value) $("url").value = url;
-    setNote(`On ${host} — ready to audit.`, "ok");
-  } else if (url) {
-    setNote("This page isn't a supported listing. Paste a DoneDeal or AutoTrader URL above.", "warn");
-  }
+  // Prefill from the active tab only when it's an auditable listing page.
+  if (isAuditableUrl(tab.url || "") && !$("url").value) $("url").value = tab.url;
 }
 
 function setNote(msg, cls) {
@@ -139,18 +237,6 @@ async function extractPageText(targetUrl) {
   }
 }
 
-// --- optional permission for the user's backend origin -----------------------
-
-async function ensureBackendPermission(base) {
-  let origin;
-  try { origin = new URL(base).origin + "/*"; } catch { return; }
-  // Call request() directly (no preceding await) so it stays inside the click's
-  // user gesture; Chrome resolves without a prompt if it's already granted.
-  // Non-fatal if it throws — the call still works via CORS when the backend
-  // allows the extension origin (the default `Access-Control-Allow-Origin: *`).
-  try { await chrome.permissions.request({ origins: [origin] }); } catch { /* ignore */ }
-}
-
 // --- run audit ---------------------------------------------------------------
 
 async function runAudit() {
@@ -158,23 +244,21 @@ async function runAudit() {
   const base = resolveBase();
 
   if (!base) {
-    $("advancedPanel").open = true;
-    setStatus("No backend is configured. Set a Backend URL under Advanced.", true);
+    setStatus("No backend is configured. Set backendUrl in config.js.", true);
     return;
   }
   if (!url) { setStatus("Enter or open a listing URL first.", true); return; }
-  if (!isSupportedHost(hostOf(url))) {
-    setStatus("That URL isn't a supported listing site (DoneDeal / AutoTrader).", true);
+  if (!isAuditableUrl(url)) {
+    setStatus("That page isn't an auditable car listing (DoneDeal /cars-for-sale/ or AutoTrader UK /car-details/).", true);
     return;
   }
 
   persistProfile();
   persistConn();
-  $("result").style.display = "none";
+  clearResult();
   $("go").disabled = true;
-  setStatus("Reading the listing and auditing… (first run can take ~20s)");
+  setRunning();
 
-  await ensureBackendPermission(base);
   const listingText = await extractPageText(url);
 
   chrome.runtime.sendMessage({
@@ -184,17 +268,24 @@ async function runAudit() {
     profile: buildProfile(),
     listingText,
   });
-  // The result arrives via the runtime message listener below (survives popup
-  // staying open); background also persists it for the next popup open.
+  // The result arrives via the runtime message listener below (when the popup
+  // stays open); background also persists it per-URL for the next popup open.
 }
 
 chrome.runtime.onMessage.addListener((msg) => {
   if (!msg || msg.type !== "auditResult") return;
+  // Cache the result for its listing...
+  auditsCache[urlKey(msg.url)] = msg.ok
+    ? { status: "done", data: msg.data, url: msg.url, ts: Date.now() }
+    : { status: "error", error: msg.error, url: msg.url, ts: Date.now() };
+  // ...but only reflect it in the UI if the user is still on that listing.
+  if (urlKey(msg.url) !== urlKey($("url").value.trim())) return;
   $("go").disabled = false;
   if (msg.ok) {
     setStatus("");
     render(msg.data);
   } else {
+    clearResult();
     setStatus(msg.error || "Audit failed.", true);
   }
 });
@@ -278,10 +369,29 @@ function priceBlock(h) {
 
 // --- wire up -----------------------------------------------------------------
 
-for (const id of PROFILE_FIELDS) $(id).addEventListener("change", persistProfile);
-for (const id of ["backendUrl", "sendPageText"]) $(id).addEventListener("change", persistConn);
+// Chip groups: toggle on click (all groups are multi-select), then persist.
+document.querySelectorAll(".chipgroup").forEach((group) => {
+  group.addEventListener("click", (e) => {
+    const btn = e.target.closest(".chip-btn");
+    if (!btn) return;
+    const on = btn.getAttribute("aria-pressed") === "true";
+    btn.setAttribute("aria-pressed", on ? "false" : "true");
+    persistProfile();
+  });
+});
+$("mustHaveAdd").addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { e.preventDefault(); addMustHave(e.target.value); e.target.value = ""; persistProfile(); }
+});
+
+for (const id of TEXT_FIELDS) $(id).addEventListener("change", persistProfile);
+$("sendPageText").addEventListener("change", persistConn);
 $("go").addEventListener("click", runAudit);
 $("url").addEventListener("keydown", (e) => { if (e.key === "Enter") runAudit(); });
+// Switching the target listing swaps in that listing's stored result (or clears).
+$("url").addEventListener("input", refreshResult);
 
-loadState();
-initActiveTab();
+(async () => {
+  await loadState();
+  await initActiveTab();
+  refreshResult();
+})();

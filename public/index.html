@@ -539,11 +539,28 @@
 
       // AutoTrader blocks server-side fetches, so for those listings we audit the
       // page text the user pastes in (extracted via the snippet below) instead.
-      const AUTOTRADER_HOSTS = ["autotrader.ie", "autotrader.co.uk"];
+      const AUTOTRADER_HOSTS = ["autotrader.co.uk"];
       const hostOf = (url) => { try { return new URL(url).hostname.toLowerCase(); } catch { return ""; } };
       const isAutotrader = (url) => {
         const h = hostOf(url);
         return AUTOTRADER_HOSTS.some((d) => h === d || h.endsWith("." + d));
+      };
+
+      // Listing-detail routes we audit (host + path prefix). Mirrors LISTING_ROUTES
+      // in src/server.ts; the backend rejects anything else with 400.
+      const LISTING_ROUTES = [
+        { host: "donedeal.ie", prefix: "/cars-for-sale/" },
+        { host: "autotrader.co.uk", prefix: "/car-details/" },
+      ];
+      const isAuditableUrl = (url) => {
+        let u;
+        try { u = new URL(url); } catch { return false; }
+        if (u.protocol !== "https:" && u.protocol !== "http:") return false;
+        const host = u.hostname.toLowerCase();
+        const path = u.pathname.toLowerCase();
+        return LISTING_ROUTES.some(
+          (r) => (host === r.host || host.endsWith("." + r.host)) && path.startsWith(r.prefix),
+        );
       };
 
       // --- chip groups (single-select fuel/transmission, multi-select must-haves) ---
@@ -763,6 +780,10 @@
       async function audit() {
         const url = $("url").value.trim();
         if (!url) { setSearchNote("Enter a listing URL first.", true); return; }
+        if (!isAuditableUrl(url)) {
+          setSearchNote("Enter a DoneDeal car ad (…/cars-for-sale/…) or an AutoTrader UK car-details page.", true);
+          return;
+        }
 
         const listingText = $("listingText").value.trim();
         if (isAutotrader(url) && !listingText) {

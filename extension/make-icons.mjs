@@ -1,85 +1,130 @@
-// Generates the extension's PNG icons (no external deps — pure Node + zlib).
-// Draws a magnifying-glass "audit" mark on a rounded blue→green tile.
+// Regenerates the extension's PNG icons by downscaling the source artwork
+// (icons/donedeal-copilot-icon.png) to the manifest sizes. The source is first
+// centered on a square, transparent canvas (so a non-square source isn't
+// distorted), then area-averaged down. To change the icon, replace that source
+// PNG and re-run. No external deps — pure Node + zlib.
 //   node make-icons.mjs
-import { deflateSync } from "node:zlib";
-import { writeFileSync } from "node:fs";
+import { deflateSync, inflateSync } from "node:zlib";
+import { readFileSync, writeFileSync } from "node:fs";
 
-const BLUE = [26, 115, 232]; // #1a73e8
-const GREEN = [30, 142, 62]; // #1e8e3e
-const WHITE = [255, 255, 255];
+const SOURCE = new URL("./icons/donedeal-copilot-icon.png", import.meta.url);
+const SIZES = [16, 32, 48, 128];
 
-const lerp = (a, b, t) => a + (b - a) * t;
-const mix = (c1, c2, t) => [lerp(c1[0], c2[0], t), lerp(c1[1], c2[1], t), lerp(c1[2], c2[2], t)];
+// --- PNG decode (8-bit, non-interlaced, RGB or RGBA) → { width, height, rgba } ---
 
-// Rounded-rectangle membership in normalized [0,1] space, corner radius r.
-function inRoundedRect(u, v, r) {
-  const dx = Math.max(r - u, u - (1 - r), 0);
-  const dy = Math.max(r - v, v - (1 - r), 0);
-  return dx * dx + dy * dy <= r * r;
+const PAETH = (a, b, c) => {
+  const p = a + b - c;
+  const pa = Math.abs(p - a), pb = Math.abs(p - b), pc = Math.abs(p - c);
+  return pa <= pb && pa <= pc ? a : pb <= pc ? b : c;
+};
+
+// Reverse one scanline's filter in place (PNG filter types 0–4).
+function unfilter(type, cur, prev, bpp) {
+  const n = cur.length;
+  switch (type) {
+    case 0: break; // none
+    case 1: for (let i = 0; i < n; i++) cur[i] = (cur[i] + (i >= bpp ? cur[i - bpp] : 0)) & 0xff; break; // sub
+    case 2: for (let i = 0; i < n; i++) cur[i] = (cur[i] + prev[i]) & 0xff; break; // up
+    case 3: for (let i = 0; i < n; i++) { const a = i >= bpp ? cur[i - bpp] : 0; cur[i] = (cur[i] + ((a + prev[i]) >> 1)) & 0xff; } break; // average
+    case 4: for (let i = 0; i < n; i++) { const a = i >= bpp ? cur[i - bpp] : 0; const c = i >= bpp ? prev[i - bpp] : 0; cur[i] = (cur[i] + PAETH(a, prev[i], c)) & 0xff; } break; // paeth
+    default: throw new Error(`unknown PNG filter type ${type}`);
+  }
 }
 
-// Distance from point to a line segment, in normalized space.
-function distToSeg(px, py, ax, ay, bx, by) {
-  const dx = bx - ax, dy = by - ay;
-  const len2 = dx * dx + dy * dy || 1e-9;
-  let t = ((px - ax) * dx + (py - ay) * dy) / len2;
-  t = Math.max(0, Math.min(1, t));
-  const cx = ax + t * dx, cy = ay + t * dy;
-  return Math.hypot(px - cx, py - cy);
+function decodePng(buf) {
+  const SIG = [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a];
+  for (let i = 0; i < 8; i++) if (buf[i] !== SIG[i]) throw new Error("source is not a PNG");
+
+  let off = 8, width = 0, height = 0, bitDepth = 0, colorType = 0, interlace = 0;
+  const idat = [];
+  while (off < buf.length) {
+    const len = buf.readUInt32BE(off); off += 4;
+    const type = buf.toString("ascii", off, off + 4); off += 4;
+    const data = buf.subarray(off, off + len); off += len + 4; // + 4 skips the CRC
+    if (type === "IHDR") {
+      width = data.readUInt32BE(0);
+      height = data.readUInt32BE(4);
+      bitDepth = data[8];
+      colorType = data[9];
+      interlace = data[12];
+    } else if (type === "IDAT") {
+      idat.push(data);
+    } else if (type === "IEND") {
+      break;
+    }
+  }
+  if (bitDepth !== 8) throw new Error(`unsupported bit depth ${bitDepth} (need 8)`);
+  if (colorType !== 2 && colorType !== 6) throw new Error(`unsupported colour type ${colorType} (need 2=RGB or 6=RGBA)`);
+  if (interlace !== 0) throw new Error("interlaced PNGs are not supported");
+
+  const bpp = colorType === 6 ? 4 : 3;
+  const stride = width * bpp;
+  const raw = inflateSync(Buffer.concat(idat));
+  const planar = Buffer.alloc(stride * height);
+  let prev = Buffer.alloc(stride); // virtual zero row above the first scanline
+  let rp = 0;
+  for (let y = 0; y < height; y++) {
+    const filter = raw[rp++];
+    const cur = planar.subarray(y * stride, y * stride + stride);
+    raw.copy(cur, 0, rp, rp + stride);
+    rp += stride;
+    unfilter(filter, cur, prev, bpp);
+    prev = cur;
+  }
+
+  if (colorType === 6) return { width, height, rgba: planar };
+  const rgba = Buffer.alloc(width * height * 4); // expand RGB → RGBA (opaque)
+  for (let i = 0, j = 0; i < planar.length; i += 3, j += 4) {
+    rgba[j] = planar[i]; rgba[j + 1] = planar[i + 1]; rgba[j + 2] = planar[i + 2]; rgba[j + 3] = 255;
+  }
+  return { width, height, rgba };
 }
 
-// Returns straight RGBA [0..255] for one supersample point, or null = transparent.
-function sample(u, v) {
-  if (!inRoundedRect(u, v, 0.22)) return null;
-
-  // Magnifying glass geometry (normalized).
-  const cx = 0.43, cy = 0.43;          // lens centre
-  const R = 0.235, ring = 0.072;       // lens outer radius + ring thickness
-  const d = Math.hypot(u - cx, v - cy);
-  const dir = Math.SQRT1_2;            // 45° handle direction
-  const hx0 = cx + dir * (R - 0.02), hy0 = cy + dir * (R - 0.02);
-  const hx1 = cx + dir * 0.46, hy1 = cy + dir * 0.46;
-  const onRing = d <= R && d >= R - ring;
-  const onHandle = distToSeg(u, v, hx0, hy0, hx1, hy1) <= 0.05;
-
-  if (onRing || onHandle) return [...WHITE, 255];
-
-  const bg = mix(BLUE, GREEN, (u + v) / 2);
-  return [bg[0], bg[1], bg[2], 255];
+// --- Center on a square transparent canvas (max(W,H) side) → RGBA Buffer ----
+// Keeps a non-square source from being stretched into the square icon.
+function squarePad(src, W, H) {
+  const side = Math.max(W, H);
+  if (side === W && side === H) return { rgba: src, side };
+  const out = Buffer.alloc(side * side * 4); // transparent
+  const ox = Math.floor((side - W) / 2);
+  const oy = Math.floor((side - H) / 2);
+  for (let y = 0; y < H; y++) {
+    const srow = y * W * 4;
+    const drow = ((y + oy) * side + ox) * 4;
+    src.copy(out, drow, srow, srow + W * 4);
+  }
+  return { rgba: out, side };
 }
 
-function renderPng(size) {
-  const ss = 4; // supersample factor
-  const S = size * ss;
-  const px = Buffer.alloc(size * size * 4);
-
-  for (let y = 0; y < size; y++) {
-    for (let x = 0; x < size; x++) {
-      // Premultiplied accumulation for clean anti-aliased edges.
-      let r = 0, g = 0, b = 0, a = 0;
-      for (let sy = 0; sy < ss; sy++) {
-        for (let sx = 0; sx < ss; sx++) {
-          const u = (x * ss + sx + 0.5) / S;
-          const v = (y * ss + sy + 0.5) / S;
-          const c = sample(u, v);
-          if (c) {
-            const af = c[3] / 255;
-            r += c[0] * af; g += c[1] * af; b += c[2] * af; a += af;
-          }
+// --- Area-average downscale (premultiplied) → RGBA Buffer -------------------
+// Each destination pixel averages the block of source pixels it covers; high
+// quality for the large reductions here (1254px → 16–128px).
+function resize(src, W, H, size) {
+  const dst = Buffer.alloc(size * size * 4);
+  for (let dy = 0; dy < size; dy++) {
+    const sy0 = Math.floor((dy * H) / size);
+    const sy1 = Math.max(sy0 + 1, Math.floor(((dy + 1) * H) / size));
+    for (let dx = 0; dx < size; dx++) {
+      const sx0 = Math.floor((dx * W) / size);
+      const sx1 = Math.max(sx0 + 1, Math.floor(((dx + 1) * W) / size));
+      let r = 0, g = 0, b = 0, a = 0, count = 0;
+      for (let sy = sy0; sy < sy1; sy++) {
+        for (let sx = sx0; sx < sx1; sx++) {
+          const o = (sy * W + sx) * 4;
+          const af = src[o + 3];
+          r += src[o] * af; g += src[o + 1] * af; b += src[o + 2] * af; a += af; count++;
         }
       }
-      const n = ss * ss;
-      const alpha = a / n;
-      const o = (y * size + x) * 4;
-      if (alpha > 0) {
-        px[o] = Math.round(r / a);
-        px[o + 1] = Math.round(g / a);
-        px[o + 2] = Math.round(b / a);
-        px[o + 3] = Math.round(alpha * 255);
+      const o = (dy * size + dx) * 4;
+      if (a > 0) {
+        dst[o] = Math.round(r / a);
+        dst[o + 1] = Math.round(g / a);
+        dst[o + 2] = Math.round(b / a);
+        dst[o + 3] = Math.round(a / count);
       } // else leaves transparent zeros
     }
   }
-  return encodePng(size, size, px);
+  return dst;
 }
 
 // --- Minimal PNG encoder (RGBA, no filter) ---------------------------------
@@ -134,9 +179,12 @@ function encodePng(width, height, rgba) {
   ]);
 }
 
-for (const size of [16, 32, 48, 128]) {
-  const png = renderPng(size);
-  const path = new URL(`./icons/icon${size}.png`, import.meta.url);
-  writeFileSync(path, png);
+const source = decodePng(readFileSync(SOURCE));
+const square = squarePad(source.rgba, source.width, source.height);
+console.log(`source: ${source.width}×${source.height} → square ${square.side}×${square.side}`);
+for (const size of SIZES) {
+  const rgba = resize(square.rgba, square.side, square.side, size);
+  const png = encodePng(size, size, rgba);
+  writeFileSync(new URL(`./icons/icon${size}.png`, import.meta.url), png);
   console.log(`wrote icons/icon${size}.png (${png.length} bytes)`);
 }

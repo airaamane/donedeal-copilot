@@ -136,7 +136,7 @@ describe("handleRequest", () => {
     expect(body.error).toContain("today's audit limit");
   });
 
-  test("400 when the url host is not an allowed listing site", async () => {
+  test("400 when the url host is not a supported listing site", async () => {
     const res = await handleRequest(
       post({ profile: {}, url: "https://example.com/cars/123" }),
       okDeps,
@@ -144,18 +144,33 @@ describe("handleRequest", () => {
     expect(res.status).toBe(400);
   });
 
-  test("allows autotrader.ie listings", async () => {
+  test("allows an autotrader.co.uk car-details listing", async () => {
     const res = await handleRequest(
-      post({ profile: {}, url: "https://www.autotrader.ie/car-details/123" }),
+      post({ profile: {}, url: "https://www.autotrader.co.uk/car-details/202401011234567" }),
       okDeps,
     );
     expect(res.status).toBe(200);
   });
 
-  test("allows carsireland.ie and carzone.ie listings", async () => {
-    for (const url of ["https://www.carsireland.ie/used-cars/123", "https://www.carzone.ie/used-cars/456"]) {
+  test("400 for a supported host but a non-listing path", async () => {
+    for (const url of [
+      "https://www.donedeal.ie/cars", // section index, not an ad
+      "https://www.autotrader.co.uk/car-search?make=BMW", // search, not a detail page
+      "https://www.donedeal.ie/", // home page
+    ]) {
       const res = await handleRequest(post({ profile: {}, url }), okDeps);
-      expect(res.status).toBe(200);
+      expect(res.status).toBe(400);
+    }
+  });
+
+  test("400 for sites we no longer audit", async () => {
+    for (const url of [
+      "https://www.autotrader.ie/car-details/123",
+      "https://www.carsireland.ie/used-cars/123",
+      "https://www.carzone.ie/used-cars/456",
+    ]) {
+      const res = await handleRequest(post({ profile: {}, url }), okDeps);
+      expect(res.status).toBe(400);
     }
   });
 

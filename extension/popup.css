@@ -108,7 +108,7 @@ button.audit {
 button.audit:hover { filter: brightness(1.06); }
 button.audit:active { transform: translateY(1px); }
 button.audit:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
-button.audit:disabled { opacity: 0.55; cursor: progress; filter: none; transform: none; box-shadow: none; }
+button.audit:disabled { opacity: 0.55; cursor: not-allowed; filter: none; transform: none; box-shadow: none; }
 
 /* ── Disclosure panels ───────────────────────────────────────── */
 .panel {
@@ -127,17 +127,16 @@ button.audit:disabled { opacity: 0.55; cursor: progress; filter: none; transform
 }
 .panel > summary:hover { color: var(--color-accent); }
 .panel > summary::-webkit-details-marker { display: none; }
-.panel .chev { color: var(--color-accent); font-size: 10px; transition: transform var(--dur-short) var(--ease-out); }
+.panel .chev { color: var(--color-accent); font-size: 14px; transition: transform var(--dur-short) var(--ease-out); }
 .panel[open] .chev { transform: rotate(90deg); }
-.panel .grid, .panel > .field, .panel > .check { margin: 0 14px; }
-.panel .grid { padding-bottom: 14px; }
-.panel > .field:last-of-type { margin-bottom: 14px; }
+/* Panel body + option fields (shared form system with public/index.html) */
+.panel__body { padding: 2px 14px 14px; display: grid; gap: 14px; }
+.opts__row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+.opt { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.opt__label { font-size: 12px; font-weight: 600; color: var(--color-ink-2); }
+.opt__hint { font-size: 11px; color: var(--color-muted); }
 
-.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px 12px; padding-top: 2px; }
-.field { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-.field.wide { grid-column: 1 / -1; }
-label { font-size: 12px; font-weight: 500; color: var(--color-ink-2); }
-input.f, select.f, textarea.f {
+input.f, textarea.f {
   width: 100%; font-family: var(--font-body); font-size: 13px;
   color: var(--color-ink); background-color: var(--color-paper-2);
   border: var(--rule-hair) solid var(--color-rule); border-radius: var(--radius-input);
@@ -145,16 +144,43 @@ input.f, select.f, textarea.f {
   transition: border-color var(--dur-short) var(--ease-out);
 }
 textarea.f { font-family: inherit; resize: vertical; min-height: 80px; line-height: 1.5; }
-select.f { cursor: pointer; }
-input.f:hover, select.f:hover, textarea.f:hover { border-color: var(--color-rule-2); }
-input.f:focus-visible, select.f:focus-visible, textarea.f:focus-visible {
+input.f:hover, textarea.f:hover { border-color: var(--color-rule-2); }
+input.f:focus-visible, textarea.f:focus-visible {
   border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-ring);
 }
+
+/* Chip groups (fuel / transmission / must-haves) — toggle buttons */
+.chipgroup { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip-btn {
+  font-family: var(--font-body); font-size: 12px; font-weight: 500;
+  color: var(--color-ink-2); background-color: var(--color-paper-2);
+  border: var(--rule-hair) solid var(--color-rule); border-radius: var(--radius-pill);
+  padding: 6px 12px; cursor: pointer;
+  transition: border-color var(--dur-short) var(--ease-out),
+              background-color var(--dur-short) var(--ease-out),
+              color var(--dur-short) var(--ease-out);
+}
+.chip-btn:hover { border-color: var(--color-rule-2); }
+.chip-btn:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.chip-btn[aria-pressed="true"] {
+  background-color: var(--color-accent); color: var(--color-on-accent); border-color: var(--color-accent);
+}
+/* Inline "add your own" chip input (must-haves) */
+.chip-add {
+  font-family: var(--font-body); font-size: 12px; color: var(--color-ink);
+  background-color: var(--color-paper-2);
+  border: var(--rule-hair) dashed var(--color-rule-2); border-radius: var(--radius-pill);
+  padding: 6px 12px; outline: 0; width: 7.5rem; min-width: 0;
+  transition: border-color var(--dur-short) var(--ease-out);
+}
+.chip-add::placeholder { color: var(--color-muted); }
+.chip-add:focus-visible { border-style: solid; border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-ring); }
+
 .check {
-  display: flex; align-items: center; gap: 8px; margin-top: 12px;
+  display: flex; align-items: flex-start; gap: 8px;
   font-size: 12px; color: var(--color-ink-2);
 }
-.check input { margin: 0; accent-color: var(--color-accent); }
+.check input { margin: 2px 0 0; accent-color: var(--color-accent); }
 
 /* ── Status line ─────────────────────────────────────────────── */
 #status {
@@ -162,6 +188,18 @@ input.f:focus-visible, select.f:focus-visible, textarea.f:focus-visible {
   color: var(--color-muted); text-align: center; margin-top: 16px; min-height: 16px;
 }
 #status.error { color: var(--v-avoid); }
+#status.running {
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  color: var(--color-accent); font-weight: 600;
+}
+#status .spark {
+  flex: none; color: var(--color-accent); transform-origin: center;
+  animation: sparkle 1.4s var(--ease-out) infinite;
+}
+@keyframes sparkle {
+  0%, 100% { opacity: 0.45; transform: scale(0.82) rotate(-8deg); }
+  50%      { opacity: 1;    transform: scale(1.12) rotate(8deg); }
+}
 
 /* ── Result — instrument readout (classes from popup.js render) ── */
 #result { display: none; margin-top: 14px; }

@@ -28,11 +28,14 @@ useful.
 
 1. **Deploy the backend** (the rest of this repo) to Railway (or anywhere). See
    the root [`README.md`](../README.md) and [`.env.example`](../.env.example).
-2. Note two things from that deployment:
-   - **Backend URL** — e.g. `https://your-app.up.railway.app`
-   - **API key** — the value of `AUDIT_API_KEY`, if you set one (recommended).
-     Leave it blank in the extension only if the backend runs without a key.
-3. **CORS:** the backend defaults to `Access-Control-Allow-Origin: *`, so the
+2. **Point the extension at it.** Open [`config.js`](config.js) and set
+   `backendUrl` to your deployment, e.g. `https://your-app.up.railway.app`.
+   That's the only place the URL lives — there's no in-app setting to fill in.
+3. **Run the backend keyless.** The extension sends no API key, so deploy with
+   `AUDIT_API_KEY` **unset**; Gemini spend is bounded by the backend's per-IP and
+   global daily audit caps instead. Set `AUDIT_API_KEY` only for a private backend
+   you call from your own tooling.
+4. **CORS:** the backend defaults to `Access-Control-Allow-Origin: *`, so the
    extension can call it out of the box. If you lock it down with
    `ALLOWED_ORIGIN`, set it to your extension origin
    (`chrome-extension://<your-extension-id>`); the ID is shown on the
@@ -69,14 +72,14 @@ The fastest way to run it, and what you'll use during development. The
 ## 3. First-run setup
 
 1. Click the toolbar icon to open the popup.
-2. Expand **Connection** and fill in:
-   - **Backend URL** — your Railway URL (with or without a trailing slash; the
-     extension appends `/audit` itself).
-   - **X-API-Key** — your `AUDIT_API_KEY`, if the backend requires one.
-3. Click **Test connection** — you should see **Connected ✓**.
-4. Expand **Your profile** and set your budget, fuel, mileage, must-haves,
-   deal-breakers, etc. Everything you enter is saved locally on this browser, so
-   you only do it once.
+2. Expand **Your profile** and set your budget and finance, then tap the **fuel**
+   and **transmission** chips that apply, your max mileage and earliest year,
+   intended use, and the **must-have** chips (type your own and press Enter to add
+   one). Put any deal-breakers or free-form priorities in **Other notes**.
+3. Everything you enter is saved locally on this browser, so you only do it once.
+
+> There's nothing else to configure — the backend URL is baked into the build
+> ([`config.js`](config.js)) and the extension uses no API key.
 
 ---
 
@@ -91,7 +94,7 @@ The fastest way to run it, and what you'll use during development. The
 
 Tips:
 
-- **Page text** (Connection panel, on by default): the extension sends the
+- **Page text** (Advanced panel, on by default): the extension sends the
   rendered page text it can already see in your tab, so the backend can skip its
   own fetch. This is more reliable on **AutoTrader UK**, which blocks
   server-side fetches.
@@ -132,8 +135,9 @@ harmless if you'd rather keep it simple.)
    (1280×800 or 640×400), and a 128×128 icon (already in `icons/`).
 4. Complete the **Privacy** tab:
    - Justify permissions: `activeTab` + `scripting` (read the open listing's
-     text), `storage` (save your profile/settings), host access to the listing
-     sites, and the user-granted backend host.
+     text), `storage` (save your profile/settings), and host access to the
+     listing sites. The backend is called over CORS, so it needs no host
+     permission.
    - State that listing text + your profile are sent to **your** backend for the
      audit, and that no data is sold.
 5. Submit for review. Approval typically takes a few hours to a few days.
@@ -169,26 +173,25 @@ harmless if you'd rather keep it simple.)
 | Permission | Why |
 | --- | --- |
 | `activeTab` + `scripting` | Read the text of the listing tab you're on, so the backend can audit the page you actually see. |
-| `storage` | Save your buyer profile, backend URL, and API key locally. |
+| `storage` | Save your buyer profile and settings locally. |
 | `host_permissions` (DoneDeal, AutoTrader) | Auto-detect when you're on a supported listing and read its content. |
-| `optional_host_permissions` (any https) | Granted only for **your** backend URL the first time you audit/test, so the extension can call it. |
 
-Your profile and the listing text are sent **only** to the backend URL you
-configure. Nothing is sent anywhere else.
+Your profile and the listing text are sent **only** to the backend URL baked
+into the build ([`config.js`](config.js)). Nothing is sent anywhere else.
 
 ---
 
 ## 10. Rebuilding the icons
 
-The PNGs in `icons/` are generated (no binary assets checked in by hand) with a
-dependency-free Node script:
+The PNGs in `icons/` are downscaled from the source artwork
+(`icons/donedeal-copilot-icon.png`) by a dependency-free Node script:
 
 ```bash
 cd extension
 node make-icons.mjs
 ```
 
-Edit the colours/shape in `make-icons.mjs` and re-run to regenerate
+To change the icon, replace that source PNG and re-run to regenerate
 `icon16/32/48/128.png`.
 
 ---
@@ -198,6 +201,7 @@ Edit the colours/shape in `make-icons.mjs` and re-run to regenerate
 | File | Purpose |
 | --- | --- |
 | `manifest.json` | Manifest V3 definition. |
+| `config.js` | Backend URL the popup calls — edit before packaging. |
 | `popup.html` / `popup.css` / `popup.js` | The toolbar popup UI and logic. |
 | `background.js` | Service worker that runs the `/audit` call (survives popup close). |
 | `icons/` | Toolbar / store icons (16/32/48/128). |

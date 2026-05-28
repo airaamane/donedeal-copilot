@@ -29,8 +29,11 @@ cp .env.example .env
 ```
 
 Every variable is documented in [`.env.example`](.env.example). Only
-`GEMINI_API_KEY` is required; `AUDIT_API_KEY` is strongly recommended before
-deploying (without it the `/audit` endpoint runs unauthenticated in dev mode).
+`GEMINI_API_KEY` is required. The bundled browser extension sends **no** API key,
+so a backend serving that extension should leave `AUDIT_API_KEY` unset and rely on
+the built-in per-IP and global daily audit caps to bound Gemini spend. Set
+`AUDIT_API_KEY` only for a private backend whose clients you control — when set,
+it's compared in constant time and unauthenticated calls get `401`.
 
 ## Running
 
@@ -46,13 +49,14 @@ The server listens on `PORT` (default `8787`). Open
 
 | Method | Path      | Description                                          |
 | ------ | --------- | ---------------------------------------------------- |
-| `POST` | `/audit`  | Body `{ profile, url }` → audit JSON. Auth via `X-API-Key`. |
+| `POST` | `/audit`  | Body `{ profile, url }` → audit JSON. Optional `X-API-Key` (see `AUDIT_API_KEY`). |
 | `GET`  | `/health` | Liveness check → `{ ok: true }`.                     |
 | `GET`  | `/`       | Local test console (HTML).                           |
 
-The listing `url` host must be on the allow-list (`donedeal.ie`,
-`autotrader.ie`, `autotrader.co.uk`, `carsireland.ie`, `carzone.ie` by default —
-configurable via `ALLOWED_LISTING_HOSTS`). Requests are rate-limited per client IP.
+The listing `url` must be a car-listing **detail page** on a supported site —
+`donedeal.ie/cars-for-sale/…` or `autotrader.co.uk/car-details/…`. Any other URL
+(wrong site, or a search/section page) is rejected with `400` before any Gemini
+call. Requests are also rate-limited per client IP.
 
 ## Testing
 

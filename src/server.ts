@@ -62,8 +62,8 @@ function validateBody(raw: unknown): AuditRequest {
   if (typeof url !== "string" || !isHttpUrl(url)) {
     throw new BadRequestError("`url` must be a valid http(s) URL");
   }
-  if (!isAllowedListingUrl(url)) {
-    throw new BadRequestError("`url` host is not a supported listing site");
+  if (!isListingDetailUrl(url)) {
+    throw new BadRequestError("`url` is not a supported car-listing page");
   }
   if (typeof profile !== "object" || profile === null || Array.isArray(profile)) {
     throw new BadRequestError("`profile` must be an object");
@@ -92,35 +92,29 @@ function isHttpUrl(value: string): boolean {
   }
 }
 
-// --- Listing-site allow-list -------------------------------------------------
-
-const DEFAULT_ALLOWED_HOSTS = [
-  "donedeal.ie",
-  "autotrader.ie",
-  "autotrader.co.uk",
-  "carsireland.ie",
-  "carzone.ie",
+// --- Listing-detail route allow-list -----------------------------------------
+// The only page types we audit. A URL must match a host (or subdomain) AND the
+// path prefix; anything else is rejected before any Gemini call, so we never
+// spend the audit budget on a non-listing page. Mirrors LISTING_ROUTES in the
+// extension's popup.js — keep the two in sync.
+const LISTING_ROUTES: { host: string; prefix: string }[] = [
+  { host: "donedeal.ie", prefix: "/cars-for-sale/" },
+  { host: "autotrader.co.uk", prefix: "/car-details/" },
 ];
 
-/** Parsed ALLOWED_LISTING_HOSTS, or null when set to "*" (any host allowed). */
-function parseAllowedHosts(): string[] | null {
-  const raw = process.env.ALLOWED_LISTING_HOSTS?.trim();
-  if (!raw) return DEFAULT_ALLOWED_HOSTS;
-  if (raw === "*") return null;
-  return raw.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
-}
-
-/** True if `value`'s host is an allowed listing site (or a subdomain of one). */
-function isAllowedListingUrl(value: string): boolean {
-  const hosts = parseAllowedHosts();
-  if (hosts === null) return true;
-  let host: string;
+/** True if `value` is a supported car-listing detail page (host + path match). */
+function isListingDetailUrl(value: string): boolean {
+  let u: URL;
   try {
-    host = new URL(value).hostname.toLowerCase();
+    u = new URL(value);
   } catch {
     return false;
   }
-  return hosts.some((h) => host === h || host.endsWith(`.${h}`));
+  const host = u.hostname.toLowerCase();
+  const path = u.pathname.toLowerCase();
+  return LISTING_ROUTES.some(
+    (r) => (host === r.host || host.endsWith(`.${r.host}`)) && path.startsWith(r.prefix),
+  );
 }
 
 // --- Per-IP daily rate limit -------------------------------------------------

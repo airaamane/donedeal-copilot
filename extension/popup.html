@@ -32,39 +32,64 @@
       </div>
 
       <!-- Buyer profile (persisted) -->
-      <details class="panel" id="profilePanel" open>
+      <details class="panel" id="profilePanel">
         <summary>Your profile <span class="chev">▸</span></summary>
-        <div class="grid">
-          <div class="field"><label for="budgetMax">Max budget (€)</label><input id="budgetMax" class="f" type="number" min="0" placeholder="30000" /></div>
-          <div class="field"><label for="financePerMonthMax">Finance/mo (€)</label><input id="financePerMonthMax" class="f" type="number" min="0" placeholder="610" /></div>
-          <div class="field">
-            <label for="fuel">Fuel</label>
-            <select id="fuel" class="f">
-              <option value="">Any</option><option>petrol</option><option>diesel</option><option>hybrid</option><option>ev</option>
-            </select>
+        <div class="panel__body">
+          <div class="opts__row">
+            <div class="opt"><span class="opt__label">Max budget (€)</span><input id="budgetMax" class="f" type="number" min="0" placeholder="30000" /></div>
+            <div class="opt"><span class="opt__label">Finance / mo (€)</span><input id="financePerMonthMax" class="f" type="number" min="0" placeholder="610" /></div>
           </div>
-          <div class="field">
-            <label for="transmission">Transmission</label>
-            <select id="transmission" class="f">
-              <option value="">Any</option><option>automatic</option><option>manual</option>
-            </select>
+
+          <div class="opt">
+            <span class="opt__label">Fuel</span>
+            <div class="chipgroup" data-group="fuel" data-multi="true" role="group" aria-label="Fuel">
+              <button type="button" class="chip-btn" data-value="petrol" aria-pressed="false">Petrol</button>
+              <button type="button" class="chip-btn" data-value="diesel" aria-pressed="false">Diesel</button>
+              <button type="button" class="chip-btn" data-value="hybrid" aria-pressed="false">Hybrid</button>
+              <button type="button" class="chip-btn" data-value="ev" aria-pressed="false">Electric</button>
+            </div>
           </div>
-          <div class="field"><label for="maxMileageKm">Max mileage (km)</label><input id="maxMileageKm" class="f" type="number" min="0" placeholder="130000" /></div>
-          <div class="field"><label for="minYear">Earliest year</label><input id="minYear" class="f" type="number" min="1990" placeholder="2018" /></div>
-          <div class="field wide"><label for="use">Intended use</label><input id="use" class="f" type="text" placeholder="family commuting" /></div>
-          <div class="field wide"><label for="mustHaves">Must-haves (comma separated)</label><input id="mustHaves" class="f" type="text" placeholder="Apple CarPlay, heated seats" /></div>
-          <div class="field wide"><label for="dealBreakers">Deal-breakers (comma separated)</label><input id="dealBreakers" class="f" type="text" placeholder="cat write-off, timing belt due" /></div>
-          <div class="field wide"><label for="notes">Other notes</label><input id="notes" class="f" type="text" placeholder="prefer a dealer with good reviews" /></div>
+
+          <div class="opt">
+            <span class="opt__label">Transmission</span>
+            <div class="chipgroup" data-group="transmission" data-multi="true" role="group" aria-label="Transmission">
+              <button type="button" class="chip-btn" data-value="automatic" aria-pressed="false">Automatic</button>
+              <button type="button" class="chip-btn" data-value="manual" aria-pressed="false">Manual</button>
+            </div>
+          </div>
+
+          <div class="opts__row">
+            <div class="opt"><span class="opt__label">Max mileage (km)</span><input id="maxMileageKm" class="f" type="number" min="0" placeholder="130000" /></div>
+            <div class="opt"><span class="opt__label">Earliest year</span><input id="minYear" class="f" type="number" min="1990" placeholder="2018" /></div>
+          </div>
+
+          <div class="opt"><span class="opt__label">Intended use</span><input id="use" class="f" type="text" placeholder="family commuting" /></div>
+
+          <div class="opt">
+            <span class="opt__label">Must-haves</span>
+            <span class="opt__hint">Tap the ones that matter, or type your own and press Enter.</span>
+            <div class="chipgroup" data-group="mustHaves" data-multi="true" role="group" aria-label="Must-haves">
+              <button type="button" class="chip-btn" data-value="Apple CarPlay" aria-pressed="false">Apple CarPlay</button>
+              <button type="button" class="chip-btn" data-value="Heated seats" aria-pressed="false">Heated seats</button>
+              <button type="button" class="chip-btn" data-value="Parking sensors" aria-pressed="false">Parking sensors</button>
+              <button type="button" class="chip-btn" data-value="Full service history" aria-pressed="false">Full service history</button>
+              <button type="button" class="chip-btn" data-value="Cruise control" aria-pressed="false">Cruise control</button>
+              <input id="mustHaveAdd" class="chip-add" type="text" placeholder="+ Add" aria-label="Add a must-have" />
+            </div>
+          </div>
+
+          <div class="opt">
+            <span class="opt__label">Other notes</span>
+            <textarea id="notes" class="f" placeholder="Free-form must-haves and deal-breakers — e.g. “must have a tow bar; avoid Cat S/D write-offs or a timing belt that's overdue.”"></textarea>
+          </div>
         </div>
       </details>
 
       <!-- Advanced (persisted) — most users never open this. -->
       <details class="panel" id="advancedPanel">
         <summary>Advanced <span class="chev">▸</span></summary>
-        <label class="check"><input id="sendPageText" type="checkbox" checked /> Send page text (more reliable on AutoTrader UK)</label>
-        <div class="field">
-          <label for="backendUrl">Backend URL override (for self-hosting / local dev)</label>
-          <input id="backendUrl" class="f" type="url" placeholder="leave blank to use the built-in backend" autocomplete="off" />
+        <div class="panel__body">
+          <label class="check"><input id="sendPageText" type="checkbox" checked /> <span>Send page text — more reliable on AutoTrader UK</span></label>
         </div>
       </details>
 

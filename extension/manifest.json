@@ -24,12 +24,8 @@
     "type": "module"
   },
   "permissions": ["activeTab", "scripting", "storage"],
-  "optional_host_permissions": ["https://*/*", "http://*/*"],
   "host_permissions": [
     "https://*.donedeal.ie/*",
-    "https://*.autotrader.ie/*",
-    "https://*.autotrader.co.uk/*",
-    "https://*.carsireland.ie/*",
-    "https://*.carzone.ie/*"
+    "https://*.autotrader.co.uk/*"
   ]
 }
