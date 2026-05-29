@@ -201,6 +201,13 @@ export async function handleRequest(
     });
   }
 
+  // Hosted support page — the URL pasted into the store listings' Support field.
+  if (req.method === "GET" && url.pathname === "/support") {
+    return new Response(Bun.file(`${import.meta.dir}/../public/support.html`), {
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
+  }
+
   if (req.method === "POST" && url.pathname === "/audit") {
     const unauthorized = checkAuth(req);
     if (unauthorized) return unauthorized;

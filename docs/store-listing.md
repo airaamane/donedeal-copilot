@@ -64,6 +64,8 @@ always verify with the seller and a professional inspection before buying.
 
 ## Privacy
 
+- **Homepage URL:** `https://aimechanic.up.railway.app/` (the test console doubles as a try-before-install landing — let users audit a listing without installing anything)
+- **Support URL:** `https://aimechanic.up.railway.app/support` (served by the backend from `public/support.html` — FAQ + contact email)
 - **Privacy policy URL:** `https://aimechanic.up.railway.app/privacy` (served by the backend from `public/privacy.html`)
 - **Single purpose:** see above.
 

@@ -1,0 +1,224 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Help &amp; Support — DoneDeal Copilot</title>
+    <meta name="description" content="Help, FAQ, and contact for the DoneDeal Copilot car-audit browser extension." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Shares the Showroom Light token palette with public/index.html and
+       * public/privacy.html so the three pages read as siblings. */
+      :root {
+        --color-paper:    oklch(97.5% 0.006 255);
+        --color-paper-2:  oklch(99.3% 0.004 255);
+        --color-paper-3:  oklch(95%   0.008 258);
+        --color-rule:     oklch(90%   0.010 258);
+        --color-muted:    oklch(52%   0.022 260);
+        --color-ink-2:    oklch(34%   0.045 262);
+        --color-ink:      oklch(24%   0.060 263);
+        --color-accent:   oklch(55%   0.20  264);
+        --color-accent-glow: oklch(70% 0.14 264 / 0.07);
+
+        --font-display: "Bricolage Grotesque", "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+        --font-body:    "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+        --font-mono:    ui-monospace, "SF Mono", Menlo, monospace;
+
+        --rule-hair: 1px;
+        --page-gutter: clamp(1.25rem, 4vw, 3rem);
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; }
+      body {
+        min-height: 100dvh;
+        font-family: var(--font-body);
+        font-size: 1.0625rem;
+        line-height: 1.6;
+        color: var(--color-ink-2);
+        background-color: var(--color-paper);
+        background-image: radial-gradient(90% 50% at 50% -8%, var(--color-accent-glow) 0%, transparent 55%);
+        background-attachment: fixed;
+        -webkit-font-smoothing: antialiased;
+      }
+      .shell { max-width: 44rem; margin: 0 auto; padding: 1.25rem var(--page-gutter) 4rem; }
+
+      .topbar {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 1rem; padding-block: 0.5rem;
+        border-bottom: var(--rule-hair) solid var(--color-rule);
+      }
+      .wordmark {
+        text-decoration: none;
+        display: inline-flex; align-items: baseline; gap: 0.2ch;
+        font-family: var(--font-display); font-weight: 700; font-size: 1.125rem;
+        letter-spacing: -0.01em; color: var(--color-ink);
+      }
+      .wordmark b { font-weight: 700; }
+      .wordmark .dot { color: var(--color-accent); }
+      .topbar__meta { font-size: 0.8125rem; color: var(--color-muted); white-space: nowrap; }
+
+      article { padding-top: clamp(2rem, 6vw, 3.5rem); }
+      h1 {
+        margin: 0 0 0.5rem;
+        font-family: var(--font-display); font-weight: 700;
+        font-size: clamp(2rem, 4vw + 1rem, 2.75rem); line-height: 1.1;
+        letter-spacing: -0.02em; color: var(--color-ink);
+      }
+      .lede { margin: 0 0 2rem; font-size: 1.0625rem; color: var(--color-muted); max-width: 38rem; }
+
+      .contact {
+        margin-bottom: 2.5rem; padding: 1.25rem 1.5rem;
+        border: var(--rule-hair) solid var(--color-rule);
+        border-radius: 12px; background-color: var(--color-paper-2);
+        display: flex; flex-wrap: wrap; gap: 0.75rem 1.5rem;
+        align-items: baseline;
+      }
+      .contact__label {
+        font-family: var(--font-display); font-weight: 600; font-size: 1.0625rem;
+        color: var(--color-ink); letter-spacing: -0.01em;
+      }
+      .contact__hint { font-size: 0.9375rem; color: var(--color-muted); }
+
+      h2 {
+        margin: 2.25rem 0 0.5rem;
+        font-family: var(--font-display); font-weight: 600;
+        font-size: 1.375rem; letter-spacing: -0.01em; color: var(--color-ink);
+      }
+      p { margin: 0 0 1rem; }
+      ul { padding-left: 1.25rem; margin: 0 0 1rem; }
+      li { margin-bottom: 0.5rem; }
+      strong { color: var(--color-ink); font-weight: 600; }
+      a { color: var(--color-accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+      a:hover { text-decoration-thickness: 2px; }
+      code { font-family: var(--font-mono); font-size: 0.9em; color: var(--color-ink); background: var(--color-paper-3); padding: 1px 6px; border-radius: 4px; }
+
+      details.faq {
+        border-top: var(--rule-hair) solid var(--color-rule);
+        padding: 0.75rem 0;
+      }
+      details.faq:last-of-type { border-bottom: var(--rule-hair) solid var(--color-rule); }
+      details.faq summary {
+        cursor: pointer; list-style: none;
+        font-family: var(--font-display); font-weight: 600; font-size: 1.0625rem;
+        color: var(--color-ink); padding-right: 1.5rem; position: relative;
+      }
+      details.faq summary::-webkit-details-marker { display: none; }
+      details.faq summary::after {
+        content: "+"; position: absolute; right: 0; top: 0;
+        color: var(--color-accent); font-weight: 700; font-size: 1.25rem; line-height: 1;
+        transition: transform 200ms ease;
+      }
+      details.faq[open] summary::after { content: "–"; }
+      details.faq .a { padding-top: 0.75rem; }
+      details.faq .a p { margin-bottom: 0.5rem; }
+
+      .foot {
+        margin-top: 3rem; padding-top: 1rem;
+        border-top: var(--rule-hair) solid var(--color-rule);
+        font-size: 0.8125rem; color: var(--color-muted);
+        display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+      }
+      .foot a { color: var(--color-muted); }
+      .foot__links { display: flex; gap: 1.25rem; }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <a class="wordmark" href="/">Car<b>Audit</b><span class="dot">.</span></a>
+        <span class="topbar__meta">Support</span>
+      </header>
+
+      <article>
+        <h1>Help &amp; Support</h1>
+        <p class="lede">Questions, bug reports, or feature requests for DoneDeal Copilot — start here.</p>
+
+        <div class="contact">
+          <span class="contact__label">Email:</span>
+          <a href="mailto:airaamane.pro@gmail.com?subject=DoneDeal%20Copilot%20support">airaamane.pro@gmail.com</a>
+          <span class="contact__hint">Usually a reply within a couple of business days.</span>
+        </div>
+
+        <h2>Frequently asked</h2>
+
+        <details class="faq">
+          <summary>The “AUDIT THIS LISTING” button is greyed out — why?</summary>
+          <div class="a">
+            <p>It only goes live on a supported car-listing detail page. Open a DoneDeal car ad under <code>donedeal.ie/cars-for-sale/…</code> or an AutoTrader UK car-details page under <code>autotrader.co.uk/car-details/…</code>, and the button will activate. Search-results pages, home pages, and other sites won't audit.</p>
+          </div>
+        </details>
+
+        <details class="faq">
+          <summary>The first audit takes ~20 seconds — is that normal?</summary>
+          <div class="a">
+            <p>Yes. The backend reads the listing page and then runs the AI audit; together that takes around 15–30s on a fresh listing. Identical re-audits within an hour return instantly from cache. The audit also keeps running if you close the popup — reopen it on the same listing to see the result.</p>
+          </div>
+        </details>
+
+        <details class="faq">
+          <summary>I got a “daily request limit reached” / 429 error.</summary>
+          <div class="a">
+            <p>The service enforces a per-IP daily audit limit and a global daily cap to keep costs bounded. If you hit either, try again after the 24-hour window rolls over. If you're hitting it often, get in touch and we'll look into raising it.</p>
+          </div>
+        </details>
+
+        <details class="faq">
+          <summary>An AutoTrader UK listing isn't getting read properly.</summary>
+          <div class="a">
+            <p>AutoTrader UK blocks server-side fetches, so the extension sends the visible page text it can already see in your tab. Make sure <strong>Send page text</strong> is on in the popup's <strong>Advanced</strong> panel (it's on by default), then audit again with the AutoTrader tab active.</p>
+          </div>
+        </details>
+
+        <details class="faq">
+          <summary>How accurate is the AI assessment?</summary>
+          <div class="a">
+            <p>It's <strong>guidance, not a verdict</strong>. The model is trained to flag common risks and model-year specifics from public information, but it can't see service history, see the car in person, or replace a mechanical inspection. Treat the audit as a list of things to ask the seller and a pre-inspection checklist — always verify in person and with a professional inspection before buying.</p>
+          </div>
+        </details>
+
+        <details class="faq">
+          <summary>Where is my buyer profile stored?</summary>
+          <div class="a">
+            <p>Locally in your browser only, via Chrome's extension storage (<code>chrome.storage.local</code>). It never leaves your device except as part of an audit request you initiate. See the <a href="/privacy">privacy policy</a> for the full data-handling details.</p>
+          </div>
+        </details>
+
+        <details class="faq">
+          <summary>How do I remove my data?</summary>
+          <div class="a">
+            <p>Open <code>chrome://extensions</code>, find DoneDeal Copilot, and remove it. That clears your profile, settings, and any cached audit results from your browser. There is no server-side user account or profile to delete.</p>
+          </div>
+        </details>
+
+        <details class="faq">
+          <summary>Does the extension support sites other than DoneDeal and AutoTrader UK?</summary>
+          <div class="a">
+            <p>Not yet. The extension is locked to the two listing-detail routes above to keep the audit accurate. If you'd like another site supported, email the request — popular requests will be prioritised.</p>
+          </div>
+        </details>
+
+        <h2>Report a bug or request a feature</h2>
+        <p>Email <a href="mailto:airaamane.pro@gmail.com?subject=DoneDeal%20Copilot%20bug%20report">airaamane.pro@gmail.com</a> with:</p>
+        <ul>
+          <li>What you were trying to do, and what happened instead.</li>
+          <li>The listing URL (if relevant — it's only sent so the bug can be reproduced).</li>
+          <li>Browser + version (Chrome / Edge / etc.) and the extension version (shown on <code>chrome://extensions</code>).</li>
+          <li>A screenshot, if there's something visual to show.</li>
+        </ul>
+      </article>
+
+      <footer class="foot">
+        <span>DoneDeal Copilot · support</span>
+        <span class="foot__links">
+          <a href="/">Console</a>
+          <a href="/privacy">Privacy</a>
+        </span>
+      </footer>
+    </div>
+  </body>
+</html>
