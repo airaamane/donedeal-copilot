@@ -81,6 +81,7 @@
       --dur-micro: 120ms;
       --dur-short: 220ms;
       --dur-long: 380ms;
+      --dur-drawer: 520ms;
     }
 
     * {
@@ -90,6 +91,18 @@
     html,
     body {
       overflow-x: clip;
+    }
+
+    /* Registered so the avatar completeness ring tweens its fill smoothly
+       instead of snapping when --profile-pct changes. */
+    @property --profile-pct {
+      syntax: "<number>";
+      inherits: true;
+      initial-value: 0;
+    }
+
+    html {
+      transition: --profile-pct var(--dur-drawer) var(--ease-out);
     }
 
     body {
@@ -109,6 +122,13 @@
       max-width: 72rem;
       margin: 0 auto;
       padding: var(--space-lg) var(--page-gutter) var(--space-2xl);
+      transition: transform var(--dur-drawer) var(--ease-out);
+    }
+
+    /* Premium depth cue: the page recedes while the profile drawer is open. */
+    body.profile-open .shell {
+      transform: scale(0.985);
+      transform-origin: center top;
     }
 
     /* ── Topbar ──────────────────────────────────────────────────── */
@@ -250,6 +270,98 @@
       box-shadow: none;
     }
 
+    /* Profile button — a stateful avatar whose ring fills with profile completeness.
+       The label blooms in (blur→sharp) on hover; the ring fill tweens via --profile-pct. */
+    .search__profile {
+      flex: none;
+      display: inline-flex;
+      align-items: center;
+      height: 44px;
+      padding: 4px;
+      font-family: var(--font-body);
+      font-size: var(--text-md);
+      font-weight: 600;
+      background: transparent;
+      border: 0;
+      border-radius: var(--radius-pill);
+      cursor: pointer;
+      white-space: nowrap;
+      transition: background-color var(--dur-short) var(--ease-out),
+        box-shadow var(--dur-short) var(--ease-out);
+    }
+
+    .search__profile:hover,
+    .search__profile:focus-visible {
+      background-color: var(--color-paper-3);
+      box-shadow: var(--shadow-pop);
+    }
+
+    .search__profile:focus-visible {
+      outline: 2px solid var(--color-focus);
+      outline-offset: 2px;
+    }
+
+    /* The disc: a conic-gradient ring (accent up to --profile-pct%, rule for the rest)
+       with an inset paper face holding the glyph. */
+    .search__avatar {
+      flex: none;
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border-radius: 50%;
+      color: var(--color-neutral);
+      background: conic-gradient(from -90deg,
+          var(--color-accent) calc(var(--profile-pct, 0) * 1%),
+          var(--color-rule) 0);
+      transition: transform var(--dur-short) var(--ease-out),
+        color var(--dur-short) var(--ease-out);
+    }
+
+    .search__avatar::before {
+      content: "";
+      position: absolute;
+      inset: 2.5px;
+      border-radius: 50%;
+      background: var(--color-paper-2);
+      box-shadow: var(--shadow-pop);
+    }
+
+    .search__avatar svg {
+      position: relative;
+      flex: none;
+      width: 17px;
+      height: 17px;
+    }
+
+    .search__profile:hover .search__avatar,
+    .search__profile:focus-visible .search__avatar {
+      transform: scale(1.06);
+      color: var(--color-accent);
+    }
+
+    .search__profile .label {
+      display: inline-block;
+      max-width: 0;
+      overflow: hidden;
+      opacity: 0;
+      filter: blur(4px);
+      color: var(--color-accent);
+      transition: max-width var(--dur-short) var(--ease-out),
+        opacity var(--dur-short) var(--ease-out),
+        filter var(--dur-short) var(--ease-out),
+        margin var(--dur-short) var(--ease-out);
+    }
+
+    .search__profile:hover .label,
+    .search__profile:focus-visible .label {
+      max-width: 7rem;
+      opacity: 1;
+      filter: blur(0);
+      margin: 0 0.4rem 0 0.5ch;
+    }
+
     .search-note {
       max-width: 640px;
       margin: var(--space-sm) auto 0;
@@ -304,37 +416,6 @@
       font-size: var(--text-sm);
       padding: 8px 15px;
       box-shadow: var(--shadow-pop);
-    }
-
-    .cta {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: var(--space-xs);
-      margin-top: var(--space-xl);
-    }
-
-    .cta__note {
-      font-size: var(--text-sm);
-      color: var(--color-muted);
-    }
-
-    .try-hint {
-      display: flex;
-      align-items: center;
-      gap: var(--space-md);
-      max-width: 360px;
-      margin: var(--space-lg) auto 0;
-      font-size: var(--text-sm);
-      color: var(--color-muted);
-    }
-
-    .try-hint::before,
-    .try-hint::after {
-      content: "";
-      flex: 1;
-      height: var(--rule-hair);
-      background: var(--color-rule);
     }
 
     /* ── Feature bullets ────────────────────────────────────────── */
@@ -657,6 +738,10 @@
       background-color: var(--color-scrim);
       opacity: 0;
       visibility: hidden;
+      backdrop-filter: blur(0);
+      -webkit-backdrop-filter: blur(0);
+      /* The frost is applied statically and revealed by the opacity fade below —
+         transitioning the blur radius itself is expensive and janky. */
       transition: opacity var(--dur-short) var(--ease-out);
       z-index: 400;
     }
@@ -664,6 +749,12 @@
     .scrim.open {
       opacity: 1;
       visibility: visible;
+    }
+
+    /* Frost only behind the profile drawer; the audit readout keeps a plain scrim. */
+    body.profile-open .scrim.open {
+      backdrop-filter: blur(7px) saturate(0.92);
+      -webkit-backdrop-filter: blur(7px) saturate(0.92);
     }
 
     .readout {
@@ -695,6 +786,132 @@
         width: 100%;
         max-width: none;
       }
+    }
+
+    /* Profile drawer body — reuses the readout sheet shell */
+    .profile__body {
+      display: grid;
+      gap: var(--space-lg);
+    }
+
+    /* The profile drawer enters with more weight than the audit readout:
+       slide + settle (scale) + fade, on the longer drawer duration. */
+    #profileDrawer {
+      transform: translateX(100%) scale(0.985);
+      opacity: 0;
+      transform-origin: right center;
+      transition: transform var(--dur-drawer) var(--ease-out),
+        opacity var(--dur-drawer) var(--ease-out);
+    }
+
+    #profileDrawer.open {
+      transform: none;
+      opacity: 1;
+    }
+
+    .profile__identity {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+    }
+
+    /* Large sibling of the trigger disc — same ring, driven by the same --profile-pct. */
+    .profile__avatar {
+      flex: none;
+      position: relative;
+      display: grid;
+      place-items: center;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      color: var(--color-accent);
+      background: conic-gradient(from -90deg,
+          var(--color-accent) calc(var(--profile-pct, 0) * 1%),
+          var(--color-rule) 0);
+    }
+
+    .profile__avatar::before {
+      content: "";
+      position: absolute;
+      inset: 5px;
+      border-radius: 50%;
+      background: var(--color-paper-2);
+      box-shadow: var(--shadow-pop);
+    }
+
+    .profile__avatar svg {
+      position: relative;
+      width: 30px;
+      height: 30px;
+    }
+
+    .profile__id-text {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      margin-right: auto;
+    }
+
+    .profile__progress {
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      color: var(--color-muted);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .profile__progress b {
+      font-weight: 600;
+      color: var(--color-accent);
+    }
+
+    /* Staggered cascade as the drawer settles — header first, then each field block. */
+    #profileDrawer.open .profile__identity,
+    #profileDrawer.open .profile__body>* {
+      animation: profileRise var(--dur-long) var(--ease-out) both;
+    }
+
+    #profileDrawer.open .profile__identity {
+      animation-delay: 40ms;
+    }
+
+    #profileDrawer.open .profile__body>*:nth-child(1) {
+      animation-delay: 90ms;
+    }
+
+    #profileDrawer.open .profile__body>*:nth-child(2) {
+      animation-delay: 130ms;
+    }
+
+    #profileDrawer.open .profile__body>*:nth-child(3) {
+      animation-delay: 170ms;
+    }
+
+    #profileDrawer.open .profile__body>*:nth-child(4) {
+      animation-delay: 210ms;
+    }
+
+    #profileDrawer.open .profile__body>*:nth-child(5) {
+      animation-delay: 250ms;
+    }
+
+    #profileDrawer.open .profile__body>*:nth-child(6) {
+      animation-delay: 290ms;
+    }
+
+    #profileDrawer.open .profile__body>*:nth-child(7) {
+      animation-delay: 330ms;
+    }
+
+    #profileDrawer.open .profile__body>*:nth-child(8) {
+      animation-delay: 370ms;
+    }
+
+    #profileDrawer.open .profile__body>*:nth-child(9) {
+      animation-delay: 410ms;
+    }
+
+    #profileDrawer.open .profile__body>*:nth-child(n+10) {
+      animation-delay: 450ms;
     }
 
     .rd__head {
@@ -1162,6 +1379,18 @@
       }
     }
 
+    @keyframes profileRise {
+      from {
+        opacity: 0;
+        transform: translateY(12px);
+      }
+
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
     @keyframes scan {
       from {
         transform: rotate(-120deg);
@@ -1220,7 +1449,8 @@
           <circle cx="24" cy="24" r="9.5" fill="#fff" />
           <path fill="#ea4335" d="M24 14h20.7A24 24 0 0 0 3.3 12l9.4 16.3A11 11 0 0 1 24 14z" />
           <path fill="#4285f4" d="M33 24a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
-          <path fill="#34a853" d="M27.4 38.2 17.9 21.9A11 11 0 0 0 28 31.7L19.6 47A24 24 0 0 0 44.7 14H35a11 11 0 0 1-7.6 24.2z" />
+          <path fill="#34a853"
+            d="M27.4 38.2 17.9 21.9A11 11 0 0 0 28 31.7L19.6 47A24 24 0 0 0 44.7 14H35a11 11 0 0 1-7.6 24.2z" />
           <path fill="#fbbc05" d="M12.7 28.3 3.3 12A24 24 0 0 0 19.6 47l8.4-15.3a11 11 0 0 1-15.3-3.4z" />
         </svg>
         Add to Chrome
@@ -1232,22 +1462,6 @@
       <p class="sub">Audit any DoneDeal or AutoTrader listing against your buyer profile — fit score, hidden
         risks, and better alternatives. Buy with confidence.</p>
 
-      <div class="cta">
-        <a class="btn-chrome" data-store-url href="#" target="_blank" rel="noopener noreferrer">
-          <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
-            <circle cx="24" cy="24" r="9.5" fill="#fff" />
-            <path fill="#ea4335" d="M24 14h20.7A24 24 0 0 0 3.3 12l9.4 16.3A11 11 0 0 1 24 14z" />
-            <path fill="#4285f4" d="M33 24a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
-            <path fill="#34a853" d="M27.4 38.2 17.9 21.9A11 11 0 0 0 28 31.7L19.6 47A24 24 0 0 0 44.7 14H35a11 11 0 0 1-7.6 24.2z" />
-            <path fill="#fbbc05" d="M12.7 28.3 3.3 12A24 24 0 0 0 19.6 47l8.4-15.3a11 11 0 0 1-15.3-3.4z" />
-          </svg>
-          Add to Chrome — it's free
-        </a>
-        <span class="cta__note">One-click audits while you browse · installs in seconds</span>
-      </div>
-
-      <p class="try-hint">or try it now — no install</p>
-
       <form class="search" id="searchForm" autocomplete="off">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
           stroke-linecap="round" aria-hidden="true">
@@ -1255,99 +1469,20 @@
           <line x1="21" y1="21" x2="16.65" y2="16.65" />
         </svg>
         <input id="url" type="url" placeholder="Paste a listing URL…" aria-label="Listing URL" />
-        <button id="go" type="submit" class="search__go">Audit</button>
+        <button id="go" type="submit" class="search__go">Run Audit</button>
+        <button id="profileBtn" type="button" class="search__profile" aria-label="My profile" aria-haspopup="dialog"
+          title="My profile">
+          <span class="search__avatar" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="8" r="4" />
+              <path d="M4 20c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" />
+            </svg>
+          </span>
+          <span class="label">My Profile</span>
+        </button>
       </form>
       <p class="search-note" id="searchNote"></p>
-
-      <!-- Expandable options drawer -->
-      <details class="opts" id="optsDrawer">
-        <summary>
-          Customise your profile
-          <span class="sum-hint">budget · fuel · must-haves</span>
-          <span class="chev">▸</span>
-        </summary>
-        <div class="opts__body">
-          <div class="opts__row">
-            <div class="opt"><span class="opt__label">Max budget (€)</span><input id="budgetMax" class="f" type="number"
-                min="0" placeholder="30000" /></div>
-            <div class="opt"><span class="opt__label">Finance / mo (€)</span><input id="financePerMonthMax" class="f"
-                type="number" min="0" placeholder="610" /></div>
-          </div>
-
-          <div class="opt">
-            <span class="opt__label">Fuel</span>
-            <div class="chipgroup" data-group="fuel" data-multi="true" role="group" aria-label="Fuel">
-              <button type="button" class="chip-btn" data-value="petrol" aria-pressed="false">Petrol</button>
-              <button type="button" class="chip-btn" data-value="diesel" aria-pressed="false">Diesel</button>
-              <button type="button" class="chip-btn" data-value="hybrid" aria-pressed="false">Hybrid</button>
-              <button type="button" class="chip-btn" data-value="ev" aria-pressed="false">Electric</button>
-            </div>
-          </div>
-
-          <div class="opt">
-            <span class="opt__label">Transmission</span>
-            <div class="chipgroup" data-group="transmission" data-multi="true" role="group" aria-label="Transmission">
-              <button type="button" class="chip-btn" data-value="automatic" aria-pressed="false">Automatic</button>
-              <button type="button" class="chip-btn" data-value="manual" aria-pressed="false">Manual</button>
-            </div>
-          </div>
-
-          <div class="opts__row">
-            <div class="opt"><span class="opt__label">Max mileage (km)</span><input id="maxMileageKm" class="f"
-                type="number" min="0" placeholder="130000" /></div>
-            <div class="opt"><span class="opt__label">Earliest year</span><input id="minYear" class="f" type="number"
-                min="1990" placeholder="2018" /></div>
-          </div>
-
-          <div class="opt"><span class="opt__label">Intended use</span><input id="use" class="f" type="text"
-              placeholder="family commuting" /></div>
-
-          <div class="opt">
-            <span class="opt__label">Must-haves</span>
-            <span class="opt__hint">Tap the ones that matter, or type your own and press Enter.</span>
-            <div class="chipgroup" data-group="mustHaves" data-multi="true" role="group" aria-label="Must-haves">
-              <button type="button" class="chip-btn" data-value="Apple CarPlay" aria-pressed="false">Apple
-                CarPlay</button>
-              <button type="button" class="chip-btn" data-value="Heated seats" aria-pressed="false">Heated
-                seats</button>
-              <button type="button" class="chip-btn" data-value="Parking sensors" aria-pressed="false">Parking
-                sensors</button>
-              <button type="button" class="chip-btn" data-value="Full service history" aria-pressed="false">Full service
-                history</button>
-              <button type="button" class="chip-btn" data-value="Cruise control" aria-pressed="false">Cruise
-                control</button>
-              <input id="mustHaveAdd" class="chip-add" type="text" placeholder="+ Add" aria-label="Add a must-have" />
-            </div>
-          </div>
-
-          <div class="opt">
-            <span class="opt__label">Other notes</span>
-            <textarea id="notes" class="f"
-              placeholder="Free-form must-haves and deal-breakers go here — e.g. “must have a tow bar; avoid Cat S/D write-offs or a timing belt that's overdue.”"></textarea>
-          </div>
-
-          <div class="opt">
-            <span class="opt__label">Listing text · AutoTrader only</span>
-            <textarea id="listingText" class="f"
-              placeholder="For AutoTrader: run the copied script in the listing tab's DevTools console, then paste the page text here."></textarea>
-            <button type="button" id="copyScript" class="chip-btn" style="align-self: flex-start;">Copy extraction
-              script</button>
-            <span class="opt__hint" id="listingHint"></span>
-          </div>
-
-          <details class="adv">
-            <summary>API key &amp; settings</summary>
-            <div class="opt">
-              <span class="opt__label">X-API-Key (only if the server sets AUDIT_API_KEY)</span>
-              <input id="apiKey" class="f" type="password" placeholder="paste AUDIT_API_KEY" autocomplete="off" />
-            </div>
-          </details>
-
-          <div class="opt opt--actions">
-            <button type="button" id="resetPrefs" class="btn-reset">Reset preferences</button>
-          </div>
-        </div>
-      </details>
 
       <section class="features" aria-label="What you get">
         <div class="feat">
@@ -1407,17 +1542,19 @@
         Private. Secure. Built for smart car buyers.
       </p>
     </main>
-
-    <footer class="foot">
-      <div class="foot__inner">
-        <span>Car Audit · console.</span>
-        <span class="foot__links">
-          <a href="/privacy">Privacy</a>
-          <a href="/support">Support</a>
-        </span>
-      </div>
-    </footer>
   </div>
+
+  <!-- Fixed footer — a sibling of .shell so the push-back transform on .shell can't
+       trap this position:fixed element. -->
+  <footer class="foot">
+    <div class="foot__inner">
+      <span>Car Audit · console.</span>
+      <span class="foot__links">
+        <a href="/privacy">Privacy</a>
+        <a href="/support">Support</a>
+      </span>
+    </div>
+  </footer>
 
   <!-- Readout side drawer (opens on audit) -->
   <div class="scrim" id="scrim"></div>
@@ -1441,6 +1578,99 @@
 
     <div id="status"></div>
     <div id="result"></div>
+  </aside>
+
+  <!-- My Profile side drawer — a sibling of the audit readout (not inside .shell) so the
+       page can recede behind it; a transform on an ancestor would trap this fixed element. -->
+  <aside class="readout" id="profileDrawer" role="dialog" aria-label="My profile" aria-hidden="true">
+    <div class="profile__identity">
+      <span class="profile__avatar" aria-hidden="true">
+        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="8" r="4" />
+          <path d="M4 20c0-4 3.6-6.5 8-6.5s8 2.5 8 6.5" />
+        </svg>
+      </span>
+      <div class="profile__id-text">
+        <span class="rd__title">Your buyer profile</span>
+        <span class="profile__progress"><b id="profilePctText">0% complete</b> · <span id="profileCountText">0 of 7
+            set</span></span>
+      </div>
+      <button type="button" id="closeProfile" class="rd__close" aria-label="Close profile">×</button>
+    </div>
+    <div class="profile__body">
+      <div class="opts__row">
+        <div class="opt"><span class="opt__label">Max budget (€)</span><input id="budgetMax" class="f" type="number"
+            min="0" placeholder="30000" /></div>
+        <div class="opt"><span class="opt__label">Finance / mo (€)</span><input id="financePerMonthMax" class="f"
+            type="number" min="0" placeholder="610" /></div>
+      </div>
+
+      <div class="opt">
+        <span class="opt__label">Fuel</span>
+        <div class="chipgroup" data-group="fuel" data-multi="true" role="group" aria-label="Fuel">
+          <button type="button" class="chip-btn" data-value="petrol" aria-pressed="false">Petrol</button>
+          <button type="button" class="chip-btn" data-value="diesel" aria-pressed="false">Diesel</button>
+          <button type="button" class="chip-btn" data-value="hybrid" aria-pressed="false">Hybrid</button>
+          <button type="button" class="chip-btn" data-value="ev" aria-pressed="false">Electric</button>
+        </div>
+      </div>
+
+      <div class="opt">
+        <span class="opt__label">Transmission</span>
+        <div class="chipgroup" data-group="transmission" data-multi="true" role="group" aria-label="Transmission">
+          <button type="button" class="chip-btn" data-value="automatic" aria-pressed="false">Automatic</button>
+          <button type="button" class="chip-btn" data-value="manual" aria-pressed="false">Manual</button>
+        </div>
+      </div>
+
+      <div class="opts__row">
+        <div class="opt"><span class="opt__label">Max mileage (km)</span><input id="maxMileageKm" class="f"
+            type="number" min="0" placeholder="130000" /></div>
+        <div class="opt"><span class="opt__label">Earliest year</span><input id="minYear" class="f" type="number"
+            min="1990" placeholder="2018" /></div>
+      </div>
+
+      <div class="opt"><span class="opt__label">Intended use</span><input id="use" class="f" type="text"
+          placeholder="family commuting" /></div>
+
+      <div class="opt">
+        <span class="opt__label">Must-haves</span>
+        <span class="opt__hint">Tap the ones that matter, or type your own and press Enter.</span>
+        <div class="chipgroup" data-group="mustHaves" data-multi="true" role="group" aria-label="Must-haves">
+          <button type="button" class="chip-btn" data-value="Apple CarPlay" aria-pressed="false">Apple
+            CarPlay</button>
+          <button type="button" class="chip-btn" data-value="Heated seats" aria-pressed="false">Heated
+            seats</button>
+          <button type="button" class="chip-btn" data-value="Parking sensors" aria-pressed="false">Parking
+            sensors</button>
+          <button type="button" class="chip-btn" data-value="Full service history" aria-pressed="false">Full service
+            history</button>
+          <button type="button" class="chip-btn" data-value="Cruise control" aria-pressed="false">Cruise
+            control</button>
+          <input id="mustHaveAdd" class="chip-add" type="text" placeholder="+ Add" aria-label="Add a must-have" />
+        </div>
+      </div>
+
+      <div class="opt">
+        <span class="opt__label">Other notes</span>
+        <textarea id="notes" class="f"
+          placeholder="Free-form must-haves and deal-breakers go here — e.g. “must have a tow bar; avoid Cat S/D write-offs or a timing belt that's overdue.”"></textarea>
+      </div>
+
+      <div class="opt">
+        <span class="opt__label">Listing text · AutoTrader only</span>
+        <textarea id="listingText" class="f"
+          placeholder="For AutoTrader: run the copied script in the listing tab's DevTools console, then paste the page text here."></textarea>
+        <button type="button" id="copyScript" class="chip-btn" style="align-self: flex-start;">Copy extraction
+          script</button>
+        <span class="opt__hint" id="listingHint"></span>
+      </div>
+
+      <div class="opt opt--actions">
+        <button type="button" id="resetPrefs" class="btn-reset">Reset preferences</button>
+      </div>
+    </div>
   </aside>
 
   <!-- The AutoTrader extraction snippet (script.js), copied to the clipboard by
@@ -1478,7 +1708,6 @@
     const STORE_URL = "https://chromewebstore.google.com/detail/donedeal-copilot-%E2%80%94-car-au/adfcakaaiackhijgkefgdalkhpcbkbjf";
     document.querySelectorAll("[data-store-url]").forEach((a) => { a.href = STORE_URL; });
 
-    const KEY_STORE = "carAuditApiKey";
     const readout = $("readout");
     const scrim = $("scrim");
     const setReadout = (state) => { readout.dataset.state = state; };
@@ -1527,6 +1756,7 @@
           group.querySelectorAll(".chip-btn").forEach((b) => b.setAttribute("aria-pressed", "false"));
         }
         btn.setAttribute("aria-pressed", on ? "false" : "true");
+        updateCompleteness();
       });
     });
 
@@ -1546,6 +1776,7 @@
       btn.setAttribute("aria-pressed", "true");
       btn.textContent = value;
       mustHaveGroup.insertBefore(btn, $("mustHaveAdd"));
+      updateCompleteness();
     }
     $("mustHaveAdd").addEventListener("keydown", (e) => {
       if (e.key === "Enter") { e.preventDefault(); addMustHave(e.target.value); e.target.value = ""; }
@@ -1558,6 +1789,7 @@
       mustHaveGroup.querySelectorAll('.chip-btn[data-custom="true"]').forEach((b) => b.remove());
       $("mustHaveAdd").value = "";
       setSearchNote("");
+      updateCompleteness();
     }
     $("resetPrefs").addEventListener("click", resetPrefs);
 
@@ -1588,12 +1820,31 @@
     $("url").addEventListener("input", updateListingHint);
     updateListingHint();
 
-    // remember the API key locally so you only type it once
-    $("apiKey").value = localStorage.getItem(KEY_STORE) || "";
-    $("apiKey").addEventListener("change", (e) => localStorage.setItem(KEY_STORE, e.target.value.trim()));
-
     const num = (id) => { const v = $(id).value.trim(); return v === "" ? undefined : Number(v); };
     const str = (id) => { const v = $(id).value.trim(); return v === "" ? undefined : v; };
+
+    // Profile completeness — seven signals — feeds the avatar ring (mini on the trigger,
+    // large in the drawer header). --profile-pct tweens the conic-gradient fill; the
+    // header shows the live percentage and count.
+    function updateCompleteness() {
+      const signals = [
+        str("budgetMax") || str("financePerMonthMax"),
+        chipValues("fuel").length,
+        chipValues("transmission").length,
+        str("maxMileageKm"),
+        str("minYear"),
+        str("use"),
+        chipValues("mustHaves").length,
+      ];
+      const met = signals.filter(Boolean).length;
+      const pct = Math.round((met / signals.length) * 100);
+      document.documentElement.style.setProperty("--profile-pct", pct);
+      $("profilePctText").textContent = pct + "% complete";
+      $("profileCountText").textContent = met + " of " + signals.length + " set";
+    }
+    ["budgetMax", "financePerMonthMax", "maxMileageKm", "minYear", "use"].forEach(
+      (id) => $(id).addEventListener("input", updateCompleteness));
+    updateCompleteness();
 
     function buildProfile() {
       const fuel = chipValues("fuel");
@@ -1633,7 +1884,9 @@
       el.className = "search-note" + (isError ? " error" : "");
     }
 
-    // --- readout drawer open/close ---
+    // --- side drawers (audit readout + profile) share the scrim & Escape behaviour ---
+    const profileDrawer = $("profileDrawer");
+
     function openReadout() {
       readout.classList.add("open");
       scrim.classList.add("open");
@@ -1646,10 +1899,33 @@
       readout.setAttribute("aria-hidden", "true");
       $("go").focus();
     }
+
+    function openProfile() {
+      document.body.classList.add("profile-open");
+      profileDrawer.classList.add("open");
+      scrim.classList.add("open");
+      profileDrawer.setAttribute("aria-hidden", "false");
+      $("closeProfile").focus();
+    }
+    function closeProfile() {
+      document.body.classList.remove("profile-open");
+      profileDrawer.classList.remove("open");
+      scrim.classList.remove("open");
+      profileDrawer.setAttribute("aria-hidden", "true");
+      $("profileBtn").focus();
+    }
+
+    function closeAnySheet() {
+      if (readout.classList.contains("open")) closeReadout();
+      if (profileDrawer.classList.contains("open")) closeProfile();
+    }
+
     $("closeReadout").addEventListener("click", closeReadout);
-    scrim.addEventListener("click", closeReadout);
+    $("profileBtn").addEventListener("click", openProfile);
+    $("closeProfile").addEventListener("click", closeProfile);
+    scrim.addEventListener("click", closeAnySheet);
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape" && readout.classList.contains("open")) closeReadout();
+      if (e.key === "Escape") closeAnySheet();
     });
 
     function render(audit) {
@@ -1733,8 +2009,8 @@
 
       const listingText = $("listingText").value.trim();
       if (isAutotrader(url) && !listingText) {
-        setSearchNote("AutoTrader needs the page text — open Customise, copy the script, run it on the AutoTrader tab, then paste it in.", true);
-        $("optsDrawer").open = true;
+        setSearchNote("AutoTrader needs the page text — open My Profile, copy the script, run it on the AutoTrader tab, then paste it in.", true);
+        openProfile();
         $("listingText").focus();
         return;
       }
@@ -1753,7 +2029,7 @@
       try {
         const res = await fetch("/audit", {
           method: "POST",
-          headers: { "Content-Type": "application/json", "X-API-Key": $("apiKey").value.trim() },
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify(reqBody),
         });
         const data = await res.json();
