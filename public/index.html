@@ -1,511 +1,1225 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Car Audit — console</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Hanken+Grotesk:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap"
-      rel="stylesheet"
-    />
-    <style>
-      /* Hallmark · genre: modern-minimal · macrostructure: Marquee Search + side-drawer readout · theme: custom "Showroom Light"
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Car Audit — console</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Hanken+Grotesk:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
+  <style>
+    /* Hallmark · genre: modern-minimal · macrostructure: Marquee Search + side-drawer readout · theme: custom "Showroom Light"
        * paper oklch(97.5% 0.006 255) · accent oklch(55% 0.20 264) royal-blue · Bricolage Grotesque + Hanken Grotesk
        * Hallmark · pre-emit critique: P5 H4 E4 S5 R4 V5 */
 
-      :root {
-        --color-paper:    oklch(97.5% 0.006 255);
-        --color-paper-2:  oklch(99.3% 0.004 255);
-        --color-paper-3:  oklch(95%   0.008 258);
-        --color-rule:     oklch(90%   0.010 258);
-        --color-rule-2:   oklch(80%   0.014 258);
-        --color-muted:    oklch(52%   0.022 260);
-        --color-neutral:  oklch(44%   0.030 261);
-        --color-ink-2:    oklch(34%   0.045 262);
-        --color-ink:      oklch(24%   0.060 263);
-        --color-accent:   oklch(55%   0.20  264);
-        --color-on-accent: oklch(99%  0.004 255);
-        --color-focus:    oklch(55%   0.20  264);
-        --color-accent-soft: oklch(96% 0.025 264);
-        --color-accent-glow: oklch(70% 0.14 264 / 0.07);
-        --color-accent-ring: oklch(55% 0.20 264 / 0.28);
-        --color-scrim:    oklch(24% 0.05 262 / 0.40);
+    :root {
+      --color-paper: oklch(97.5% 0.006 255);
+      --color-paper-2: oklch(99.3% 0.004 255);
+      --color-paper-3: oklch(95% 0.008 258);
+      --color-rule: oklch(90% 0.010 258);
+      --color-rule-2: oklch(80% 0.014 258);
+      --color-muted: oklch(52% 0.022 260);
+      --color-neutral: oklch(44% 0.030 261);
+      --color-ink-2: oklch(34% 0.045 262);
+      --color-ink: oklch(24% 0.060 263);
+      --color-accent: oklch(55% 0.20 264);
+      --color-on-accent: oklch(99% 0.004 255);
+      --color-focus: oklch(55% 0.20 264);
+      --color-accent-soft: oklch(96% 0.025 264);
+      --color-accent-glow: oklch(70% 0.14 264 / 0.07);
+      --color-accent-ring: oklch(55% 0.20 264 / 0.28);
+      --color-scrim: oklch(24% 0.05 262 / 0.40);
 
-        --v-good:    oklch(52% 0.15 150);
-        --v-caution: oklch(58% 0.13 75);
-        --v-avoid:   oklch(53% 0.20 25);
+      --v-good: oklch(52% 0.15 150);
+      --v-caution: oklch(58% 0.13 75);
+      --v-avoid: oklch(53% 0.20 25);
 
-        --font-display: "Bricolage Grotesque", "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
-        --font-body:    "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
-        --font-mono:    "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
+      --font-display: "Bricolage Grotesque", "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+      --font-body: "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+      --font-mono: "Geist Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
-        --text-xs:   0.75rem;
-        --text-sm:   0.8125rem;
-        --text-base: 1rem;
-        --text-md:   1.125rem;
-        --text-lg:   1.375rem;
-        --text-xl:   1.625rem;
-        --text-2xl:  2.25rem;
-        --text-display:   clamp(2.5rem, 5vw + 1rem, 4rem);
+      --text-xs: 0.75rem;
+      --text-sm: 0.8125rem;
+      --text-base: 1rem;
+      --text-md: 1.125rem;
+      --text-lg: 1.375rem;
+      --text-xl: 1.625rem;
+      --text-2xl: 2.25rem;
+      --text-display: clamp(2.5rem, 5vw + 1rem, 4rem);
 
-        --tracking-display: -0.025em;
-        --tracking-tight:   -0.01em;
+      --tracking-display: -0.025em;
+      --tracking-tight: -0.01em;
 
-        --lh-tight:   1.06;
-        --lh-snug:    1.2;
-        --lh-normal:  1.5;
+      --lh-tight: 1.06;
+      --lh-snug: 1.2;
+      --lh-normal: 1.5;
 
-        --space-2xs: 0.25rem;
-        --space-xs:  0.5rem;
-        --space-sm:  0.75rem;
-        --space-md:  1rem;
-        --space-lg:  1.5rem;
-        --space-xl:  2.5rem;
-        --space-2xl: 4rem;
+      --space-2xs: 0.25rem;
+      --space-xs: 0.5rem;
+      --space-sm: 0.75rem;
+      --space-md: 1rem;
+      --space-lg: 1.5rem;
+      --space-xl: 2.5rem;
+      --space-2xl: 4rem;
 
-        --page-gutter: clamp(1.25rem, 4vw, 3rem);
-        --rule-hair:   1px;
+      --page-gutter: clamp(1.25rem, 4vw, 3rem);
+      --rule-hair: 1px;
 
-        --radius-card:  16px;
-        --radius-input: 10px;
-        --radius-pill:  999px;
-        --shadow-card:  0 1px 2px oklch(40% 0.05 262 / 0.06), 0 14px 36px -22px oklch(40% 0.08 262 / 0.30);
-        --shadow-pop:   0 1px 2px oklch(40% 0.05 262 / 0.06);
-        --shadow-accent: 0 8px 20px -10px oklch(55% 0.20 264 / 0.45);
-        --shadow-drawer: -24px 0 60px -30px oklch(24% 0.08 262 / 0.5);
+      --radius-card: 16px;
+      --radius-input: 10px;
+      --radius-pill: 999px;
+      --shadow-card: 0 1px 2px oklch(40% 0.05 262 / 0.06), 0 14px 36px -22px oklch(40% 0.08 262 / 0.30);
+      --shadow-pop: 0 1px 2px oklch(40% 0.05 262 / 0.06);
+      --shadow-accent: 0 8px 20px -10px oklch(55% 0.20 264 / 0.45);
+      --shadow-drawer: -24px 0 60px -30px oklch(24% 0.08 262 / 0.5);
 
-        --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
-        --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
-        --dur-micro: 120ms;
-        --dur-short: 220ms;
-        --dur-long:  380ms;
-      }
+      --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+      --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+      --dur-micro: 120ms;
+      --dur-short: 220ms;
+      --dur-long: 380ms;
+    }
 
-      * { box-sizing: border-box; }
-      html, body { overflow-x: clip; }
-      body {
-        margin: 0;
-        min-height: 100dvh;
-        font-family: var(--font-body);
-        font-size: var(--text-base);
-        line-height: var(--lh-normal);
-        color: var(--color-ink-2);
-        background-color: var(--color-paper);
-        background-image: radial-gradient(90% 50% at 50% -8%, var(--color-accent-glow) 0%, transparent 55%);
-        background-attachment: fixed;
-        -webkit-font-smoothing: antialiased;
-      }
-      .shell { max-width: 72rem; margin: 0 auto; padding: var(--space-lg) var(--page-gutter) var(--space-2xl); }
+    * {
+      box-sizing: border-box;
+    }
 
-      /* ── Topbar ──────────────────────────────────────────────────── */
-      .topbar {
-        display: flex; align-items: center; justify-content: space-between;
-        gap: var(--space-md); padding-block: var(--space-sm);
-        border-bottom: var(--rule-hair) solid var(--color-rule);
-      }
-      .wordmark {
-        display: inline-flex; align-items: baseline; gap: 0.2ch;
-        font-family: var(--font-display); font-weight: 700; font-size: var(--text-md);
-        letter-spacing: var(--tracking-tight); color: var(--color-ink);
-      }
-      .wordmark b { font-weight: 700; }
-      .wordmark .dot { color: var(--color-accent); }
-      .topbar__meta { font-size: var(--text-sm); color: var(--color-muted); white-space: nowrap; }
+    html,
+    body {
+      overflow-x: clip;
+    }
 
-      /* ── Hero — Marquee Search ──────────────────────────────────── */
-      .hero { max-width: 720px; margin: 0 auto; text-align: center; padding-block: clamp(2.5rem, 9vw, 5.5rem) var(--space-2xl); }
-      .hero h1 {
-        margin: 0; font-family: var(--font-display); font-weight: 700;
-        font-size: var(--text-display); line-height: var(--lh-tight);
-        letter-spacing: var(--tracking-display); color: var(--color-ink);
-        overflow-wrap: anywhere; min-width: 0;
-      }
-      .hero .sub { margin: var(--space-md) auto 0; max-width: 50ch; font-size: var(--text-md); color: var(--color-muted); }
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      font-family: var(--font-body);
+      font-size: var(--text-base);
+      line-height: var(--lh-normal);
+      color: var(--color-ink-2);
+      background-color: var(--color-paper);
+      background-image: radial-gradient(90% 50% at 50% -8%, var(--color-accent-glow) 0%, transparent 55%);
+      background-attachment: fixed;
+      -webkit-font-smoothing: antialiased;
+    }
 
-      .search {
-        display: flex; align-items: center; gap: var(--space-sm);
-        max-width: 640px; margin: var(--space-xl) auto 0;
-        background-color: var(--color-paper-2);
-        border: var(--rule-hair) solid var(--color-rule);
-        border-radius: var(--radius-pill);
-        box-shadow: var(--shadow-card);
-        padding: 8px 8px 8px 22px;
-        transition: border-color var(--dur-short) var(--ease-out);
-      }
-      .search:focus-within { border-color: var(--color-accent); box-shadow: 0 0 0 4px var(--color-accent-ring), var(--shadow-card); }
-      .search svg { flex: none; color: var(--color-muted); }
-      .search input {
-        flex: 1; min-width: 0; border: 0; outline: 0; background: transparent;
-        font-family: var(--font-body); font-size: var(--text-lg); color: var(--color-ink);
-        padding: 12px 0;
-      }
-      .search input::placeholder { color: var(--color-muted); }
-      .search__go {
-        flex: none; font-family: var(--font-body); font-size: var(--text-md); font-weight: 600;
-        color: var(--color-on-accent); background-color: var(--color-accent);
-        border: 0; border-radius: var(--radius-pill); box-shadow: var(--shadow-accent);
-        padding: 13px 26px; cursor: pointer; white-space: nowrap;
-        transition: filter var(--dur-short) var(--ease-out), transform var(--dur-micro) var(--ease-out);
-      }
-      .search__go:hover { filter: brightness(1.06); }
-      .search__go:active { transform: translateY(1px); }
-      .search__go:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
-      .search__go:disabled { opacity: 0.55; cursor: progress; filter: none; transform: none; box-shadow: none; }
+    .shell {
+      max-width: 72rem;
+      margin: 0 auto;
+      padding: var(--space-lg) var(--page-gutter) var(--space-2xl);
+    }
 
-      .search-note { max-width: 640px; margin: var(--space-sm) auto 0; text-align: center; font-size: var(--text-sm); color: var(--color-muted); min-height: 1.2em; }
-      .search-note.error { color: var(--v-avoid); }
+    /* ── Topbar ──────────────────────────────────────────────────── */
+    .topbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-md);
+      padding-block: var(--space-sm);
+      border-bottom: var(--rule-hair) solid var(--color-rule);
+    }
 
-      /* ── Options drawer (expandable) ────────────────────────────── */
-      .opts {
-        max-width: 640px; margin: var(--space-lg) auto 0;
-        background-color: var(--color-paper-2);
-        border: var(--rule-hair) solid var(--color-rule);
-        border-radius: var(--radius-card);
-        box-shadow: var(--shadow-card);
-        text-align: left;
-        overflow: hidden;
-      }
-      .opts > summary {
-        cursor: pointer; list-style: none;
-        padding: 16px 20px;
-        display: flex; align-items: center; justify-content: space-between; gap: var(--space-md);
-        font-family: var(--font-display); font-size: var(--text-md); font-weight: 600; color: var(--color-ink);
-      }
-      .opts > summary::-webkit-details-marker { display: none; }
-      .opts > summary .sum-hint { font-family: var(--font-body); font-weight: 400; font-size: var(--text-sm); color: var(--color-muted); margin-left: auto; }
-      .opts .chev { color: var(--color-accent); font-size: 11px; transition: transform var(--dur-short) var(--ease-out); }
-      .opts[open] .chev { transform: rotate(90deg); }
-      .opts__body { padding: 0 20px 20px; display: grid; gap: var(--space-lg); border-top: var(--rule-hair) solid var(--color-rule); padding-top: var(--space-lg); }
-      .opts__row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: var(--space-md); }
+    .wordmark {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 0.2ch;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: var(--text-md);
+      letter-spacing: var(--tracking-tight);
+      color: var(--color-ink);
+    }
 
-      .opt { display: flex; flex-direction: column; gap: var(--space-xs); min-width: 0; }
-      .opt__label { font-family: var(--font-body); font-size: var(--text-sm); font-weight: 600; color: var(--color-ink-2); }
-      .opt__hint { font-size: var(--text-xs); color: var(--color-muted); }
+    .wordmark b {
+      font-weight: 700;
+    }
 
-      input.f, textarea.f {
-        width: 100%; font-family: var(--font-body); font-size: var(--text-base); color: var(--color-ink);
-        background-color: var(--color-paper-2); border: var(--rule-hair) solid var(--color-rule);
-        border-radius: var(--radius-input); padding: var(--space-sm) var(--space-md); outline: 0;
-        transition: border-color var(--dur-short) var(--ease-out);
-      }
-      textarea.f { font-family: inherit; resize: vertical; min-height: 84px; line-height: var(--lh-normal); }
-      input.f::placeholder, textarea.f::placeholder { color: var(--color-muted); }
-      input.f:hover, textarea.f:hover { border-color: var(--color-rule-2); }
-      input.f:focus-visible, textarea.f:focus-visible { border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-ring); }
+    .wordmark .dot {
+      color: var(--color-accent);
+    }
 
-      /* ── Chip groups (fuel / transmission / must-haves) ─────────── */
-      .chipgroup { display: flex; flex-wrap: wrap; gap: var(--space-xs); }
-      .chip-btn {
-        font-family: var(--font-body); font-size: var(--text-sm); font-weight: 500;
-        color: var(--color-ink-2); background-color: var(--color-paper-2);
-        border: var(--rule-hair) solid var(--color-rule); border-radius: var(--radius-pill);
-        padding: 7px 14px; cursor: pointer;
-        transition: border-color var(--dur-short) var(--ease-out),
-                    background-color var(--dur-short) var(--ease-out),
-                    color var(--dur-short) var(--ease-out);
-      }
-      .chip-btn:hover { border-color: var(--color-rule-2); }
-      .chip-btn:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
-      .chip-btn[aria-pressed="true"] {
-        background-color: var(--color-accent); color: var(--color-on-accent); border-color: var(--color-accent);
-      }
-      /* Inline "add your own" chip input (must-haves) */
-      .chip-add {
-        font-family: var(--font-body); font-size: var(--text-sm); color: var(--color-ink);
-        background-color: var(--color-paper-2);
-        border: var(--rule-hair) dashed var(--color-rule-2); border-radius: var(--radius-pill);
-        padding: 7px 14px; outline: 0; width: 9rem; min-width: 0;
-        transition: border-color var(--dur-short) var(--ease-out);
-      }
-      .chip-add::placeholder { color: var(--color-muted); }
-      .chip-add:focus-visible { border-style: solid; border-color: var(--color-accent); box-shadow: 0 0 0 3px var(--color-accent-ring); }
+    .topbar__meta {
+      font-size: var(--text-sm);
+      color: var(--color-muted);
+      white-space: nowrap;
+    }
 
-      /* Reset preferences */
-      .opt--actions { flex-direction: row; }
-      .btn-reset {
-        align-self: flex-start;
-        font-family: var(--font-body); font-size: var(--text-sm); font-weight: 600;
-        color: var(--color-muted); background: transparent;
-        border: var(--rule-hair) solid var(--color-rule); border-radius: var(--radius-pill);
-        padding: 8px 16px; cursor: pointer;
-        transition: color var(--dur-short) var(--ease-out), border-color var(--dur-short) var(--ease-out);
-      }
-      .btn-reset:hover { color: var(--v-avoid); border-color: var(--v-avoid); }
-      .btn-reset:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+    /* ── Hero — Marquee Search ──────────────────────────────────── */
+    .hero {
+      max-width: 720px;
+      margin: 0 auto;
+      text-align: center;
+      padding-block: clamp(2.5rem, 9vw, 5.5rem) var(--space-2xl);
+    }
 
-      details.adv { border-top: var(--rule-hair) solid var(--color-rule); padding-top: var(--space-md); }
-      details.adv summary {
-        cursor: pointer; list-style: none; font-family: var(--font-body); font-size: var(--text-sm);
-        font-weight: 600; color: var(--color-muted); transition: color var(--dur-short) var(--ease-out);
-      }
-      details.adv summary:hover { color: var(--color-ink-2); }
-      details.adv summary::-webkit-details-marker { display: none; }
-      details.adv summary::before { content: "+ "; color: var(--color-accent); }
-      details.adv[open] summary::before { content: "– "; }
-      details.adv .opt { margin-top: var(--space-md); }
+    .hero h1 {
+      margin: 0;
+      font-family: var(--font-display);
+      font-weight: 700;
+      font-size: var(--text-display);
+      line-height: var(--lh-tight);
+      letter-spacing: var(--tracking-display);
+      color: var(--color-ink);
+      overflow-wrap: anywhere;
+      min-width: 0;
+    }
 
-      /* ── Readout side drawer (60%) ──────────────────────────────── */
-      .scrim {
-        position: fixed; inset: 0; background-color: var(--color-scrim);
-        opacity: 0; visibility: hidden; transition: opacity var(--dur-short) var(--ease-out); z-index: 400;
-      }
-      .scrim.open { opacity: 1; visibility: visible; }
+    .hero .sub {
+      margin: var(--space-md) auto 0;
+      max-width: 50ch;
+      font-size: var(--text-md);
+      color: var(--color-muted);
+    }
+
+    .search {
+      display: flex;
+      align-items: center;
+      gap: var(--space-sm);
+      max-width: 640px;
+      margin: var(--space-xl) auto 0;
+      background-color: var(--color-paper-2);
+      border: var(--rule-hair) solid var(--color-rule);
+      border-radius: var(--radius-pill);
+      box-shadow: var(--shadow-card);
+      padding: 8px 8px 8px 22px;
+      transition: border-color var(--dur-short) var(--ease-out);
+    }
+
+    .search:focus-within {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 4px var(--color-accent-ring), var(--shadow-card);
+    }
+
+    .search svg {
+      flex: none;
+      color: var(--color-muted);
+    }
+
+    .search input {
+      flex: 1;
+      min-width: 0;
+      border: 0;
+      outline: 0;
+      background: transparent;
+      font-family: var(--font-body);
+      font-size: var(--text-lg);
+      color: var(--color-ink);
+      padding: 12px 0;
+    }
+
+    .search input::placeholder {
+      color: var(--color-muted);
+    }
+
+    .search__go {
+      flex: none;
+      font-family: var(--font-body);
+      font-size: var(--text-md);
+      font-weight: 600;
+      color: var(--color-on-accent);
+      background-color: var(--color-accent);
+      border: 0;
+      border-radius: var(--radius-pill);
+      box-shadow: var(--shadow-accent);
+      padding: 13px 26px;
+      cursor: pointer;
+      white-space: nowrap;
+      transition: filter var(--dur-short) var(--ease-out), transform var(--dur-micro) var(--ease-out);
+    }
+
+    .search__go:hover {
+      filter: brightness(1.06);
+    }
+
+    .search__go:active {
+      transform: translateY(1px);
+    }
+
+    .search__go:focus-visible {
+      outline: 2px solid var(--color-focus);
+      outline-offset: 2px;
+    }
+
+    .search__go:disabled {
+      opacity: 0.55;
+      cursor: progress;
+      filter: none;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .search-note {
+      max-width: 640px;
+      margin: var(--space-sm) auto 0;
+      text-align: center;
+      font-size: var(--text-sm);
+      color: var(--color-muted);
+      min-height: 1.2em;
+    }
+
+    .search-note.error {
+      color: var(--v-avoid);
+    }
+
+    /* ── Options drawer (expandable) ────────────────────────────── */
+    .opts {
+      max-width: 640px;
+      margin: var(--space-lg) auto 0;
+      background-color: var(--color-paper-2);
+      border: var(--rule-hair) solid var(--color-rule);
+      border-radius: var(--radius-card);
+      box-shadow: var(--shadow-card);
+      text-align: left;
+      overflow: hidden;
+    }
+
+    .opts>summary {
+      cursor: pointer;
+      list-style: none;
+      padding: 16px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: var(--space-md);
+      font-family: var(--font-display);
+      font-size: var(--text-md);
+      font-weight: 600;
+      color: var(--color-ink);
+    }
+
+    .opts>summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .opts>summary .sum-hint {
+      font-family: var(--font-body);
+      font-weight: 400;
+      font-size: var(--text-sm);
+      color: var(--color-muted);
+      margin-left: auto;
+    }
+
+    .opts .chev {
+      color: var(--color-accent);
+      font-size: 11px;
+      transition: transform var(--dur-short) var(--ease-out);
+    }
+
+    .opts[open] .chev {
+      transform: rotate(90deg);
+    }
+
+    .opts__body {
+      padding: 0 20px 20px;
+      display: grid;
+      gap: var(--space-lg);
+      border-top: var(--rule-hair) solid var(--color-rule);
+      padding-top: var(--space-lg);
+    }
+
+    .opts__row {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: var(--space-md);
+    }
+
+    .opt {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-xs);
+      min-width: 0;
+    }
+
+    .opt__label {
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--color-ink-2);
+    }
+
+    .opt__hint {
+      font-size: var(--text-xs);
+      color: var(--color-muted);
+    }
+
+    input.f,
+    textarea.f {
+      width: 100%;
+      font-family: var(--font-body);
+      font-size: var(--text-base);
+      color: var(--color-ink);
+      background-color: var(--color-paper-2);
+      border: var(--rule-hair) solid var(--color-rule);
+      border-radius: var(--radius-input);
+      padding: var(--space-sm) var(--space-md);
+      outline: 0;
+      transition: border-color var(--dur-short) var(--ease-out);
+    }
+
+    textarea.f {
+      font-family: inherit;
+      resize: vertical;
+      min-height: 84px;
+      line-height: var(--lh-normal);
+    }
+
+    input.f::placeholder,
+    textarea.f::placeholder {
+      color: var(--color-muted);
+    }
+
+    input.f:hover,
+    textarea.f:hover {
+      border-color: var(--color-rule-2);
+    }
+
+    input.f:focus-visible,
+    textarea.f:focus-visible {
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px var(--color-accent-ring);
+    }
+
+    /* ── Chip groups (fuel / transmission / must-haves) ─────────── */
+    .chipgroup {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-xs);
+    }
+
+    .chip-btn {
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      font-weight: 500;
+      color: var(--color-ink-2);
+      background-color: var(--color-paper-2);
+      border: var(--rule-hair) solid var(--color-rule);
+      border-radius: var(--radius-pill);
+      padding: 7px 14px;
+      cursor: pointer;
+      transition: border-color var(--dur-short) var(--ease-out),
+        background-color var(--dur-short) var(--ease-out),
+        color var(--dur-short) var(--ease-out);
+    }
+
+    .chip-btn:hover {
+      border-color: var(--color-rule-2);
+    }
+
+    .chip-btn:focus-visible {
+      outline: 2px solid var(--color-focus);
+      outline-offset: 2px;
+    }
+
+    .chip-btn[aria-pressed="true"] {
+      background-color: var(--color-accent);
+      color: var(--color-on-accent);
+      border-color: var(--color-accent);
+    }
+
+    /* Inline "add your own" chip input (must-haves) */
+    .chip-add {
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      color: var(--color-ink);
+      background-color: var(--color-paper-2);
+      border: var(--rule-hair) dashed var(--color-rule-2);
+      border-radius: var(--radius-pill);
+      padding: 7px 14px;
+      outline: 0;
+      width: 9rem;
+      min-width: 0;
+      transition: border-color var(--dur-short) var(--ease-out);
+    }
+
+    .chip-add::placeholder {
+      color: var(--color-muted);
+    }
+
+    .chip-add:focus-visible {
+      border-style: solid;
+      border-color: var(--color-accent);
+      box-shadow: 0 0 0 3px var(--color-accent-ring);
+    }
+
+    /* Reset preferences */
+    .opt--actions {
+      flex-direction: row;
+    }
+
+    .btn-reset {
+      align-self: flex-start;
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--color-muted);
+      background: transparent;
+      border: var(--rule-hair) solid var(--color-rule);
+      border-radius: var(--radius-pill);
+      padding: 8px 16px;
+      cursor: pointer;
+      transition: color var(--dur-short) var(--ease-out), border-color var(--dur-short) var(--ease-out);
+    }
+
+    .btn-reset:hover {
+      color: var(--v-avoid);
+      border-color: var(--v-avoid);
+    }
+
+    .btn-reset:focus-visible {
+      outline: 2px solid var(--color-focus);
+      outline-offset: 2px;
+    }
+
+    details.adv {
+      border-top: var(--rule-hair) solid var(--color-rule);
+      padding-top: var(--space-md);
+    }
+
+    details.adv summary {
+      cursor: pointer;
+      list-style: none;
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      font-weight: 600;
+      color: var(--color-muted);
+      transition: color var(--dur-short) var(--ease-out);
+    }
+
+    details.adv summary:hover {
+      color: var(--color-ink-2);
+    }
+
+    details.adv summary::-webkit-details-marker {
+      display: none;
+    }
+
+    details.adv summary::before {
+      content: "+ ";
+      color: var(--color-accent);
+    }
+
+    details.adv[open] summary::before {
+      content: "– ";
+    }
+
+    details.adv .opt {
+      margin-top: var(--space-md);
+    }
+
+    /* ── Readout side drawer (60%) ──────────────────────────────── */
+    .scrim {
+      position: fixed;
+      inset: 0;
+      background-color: var(--color-scrim);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity var(--dur-short) var(--ease-out);
+      z-index: 400;
+    }
+
+    .scrim.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .readout {
+      position: fixed;
+      top: 0;
+      right: 0;
+      height: 100dvh;
+      width: 60%;
+      max-width: 820px;
+      background-color: var(--color-paper);
+      border-left: var(--rule-hair) solid var(--color-rule);
+      box-shadow: var(--shadow-drawer);
+      transform: translateX(100%);
+      transition: transform var(--dur-long) var(--ease-out);
+      z-index: 410;
+      overflow-y: auto;
+      padding: clamp(var(--space-lg), 3vw, var(--space-xl));
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-lg);
+    }
+
+    .readout.open {
+      transform: none;
+    }
+
+    @media (max-width: 860px) {
       .readout {
-        position: fixed; top: 0; right: 0; height: 100dvh; width: 60%; max-width: 820px;
-        background-color: var(--color-paper); border-left: var(--rule-hair) solid var(--color-rule);
-        box-shadow: var(--shadow-drawer);
-        transform: translateX(100%); transition: transform var(--dur-long) var(--ease-out);
-        z-index: 410; overflow-y: auto;
-        padding: clamp(var(--space-lg), 3vw, var(--space-xl));
-        display: flex; flex-direction: column; gap: var(--space-lg);
+        width: 100%;
+        max-width: none;
       }
-      .readout.open { transform: none; }
-      @media (max-width: 860px) { .readout { width: 100%; max-width: none; } }
+    }
 
-      .rd__head { display: flex; align-items: center; gap: var(--space-md); }
-      .rd__title { font-family: var(--font-display); font-weight: 600; font-size: var(--text-xl); color: var(--color-ink); margin-right: auto; }
-      .rd__close {
-        flex: none; width: 38px; height: 38px; border-radius: 50%;
-        border: var(--rule-hair) solid var(--color-rule); background-color: var(--color-paper-2);
-        color: var(--color-ink-2); font-size: 20px; line-height: 1; cursor: pointer;
-        transition: background-color var(--dur-short) var(--ease-out);
+    .rd__head {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+    }
+
+    .rd__title {
+      font-family: var(--font-display);
+      font-weight: 600;
+      font-size: var(--text-xl);
+      color: var(--color-ink);
+      margin-right: auto;
+    }
+
+    .rd__close {
+      flex: none;
+      width: 38px;
+      height: 38px;
+      border-radius: 50%;
+      border: var(--rule-hair) solid var(--color-rule);
+      background-color: var(--color-paper-2);
+      color: var(--color-ink-2);
+      font-size: 20px;
+      line-height: 1;
+      cursor: pointer;
+      transition: background-color var(--dur-short) var(--ease-out);
+    }
+
+    .rd__close:hover {
+      background-color: var(--color-paper-3);
+    }
+
+    .rd__close:focus-visible {
+      outline: 2px solid var(--color-focus);
+      outline-offset: 2px;
+    }
+
+    .readout__state {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5ch;
+      font-family: var(--font-body);
+      font-size: var(--text-xs);
+      font-weight: 500;
+      color: var(--color-muted);
+      background-color: var(--color-paper-3);
+      border-radius: var(--radius-pill);
+      padding: 4px 10px;
+    }
+
+    .readout__state::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--color-rule-2);
+    }
+
+    .readout[data-state="running"] .readout__state::before {
+      background: var(--color-accent);
+      animation: blink 1s steps(2, jump-none) infinite;
+    }
+
+    .readout[data-state="done"] .readout__state::before {
+      background: var(--v-good);
+    }
+
+    .readout[data-state="error"] .readout__state::before {
+      background: var(--v-avoid);
+    }
+
+    .readout__state em {
+      font-style: normal;
+    }
+
+    .readout[data-state="idle"] .readout__state em::after {
+      content: "idle";
+    }
+
+    .readout[data-state="running"] .readout__state em::after {
+      content: "auditing";
+    }
+
+    .readout[data-state="done"] .readout__state em::after {
+      content: "ready";
+    }
+
+    .readout[data-state="error"] .readout__state em::after {
+      content: "error";
+    }
+
+    /* Idle / scanning instrument (gauge at the top of the drawer) */
+    .idle {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-lg);
+      padding-block: var(--space-md);
+    }
+
+    .readout[data-state="done"] .idle {
+      display: none;
+    }
+
+    .gauge {
+      position: relative;
+      width: 168px;
+      height: 168px;
+      border-radius: 50%;
+      background-color: var(--color-paper-2);
+      border: var(--rule-hair) solid var(--color-rule);
+      box-shadow: var(--shadow-pop);
+      display: grid;
+      place-items: center;
+    }
+
+    .gauge::after {
+      content: "";
+      position: absolute;
+      inset: 9px;
+      border-radius: 50%;
+      background: repeating-conic-gradient(var(--color-rule-2) 0 1deg, transparent 1deg 10deg);
+      -webkit-mask: radial-gradient(circle, transparent 0 66px, #000 66px 73px, transparent 73px);
+      mask: radial-gradient(circle, transparent 0 66px, #000 66px 73px, transparent 73px);
+    }
+
+    .gauge__needle {
+      position: absolute;
+      bottom: 50%;
+      left: calc(50% - 1.5px);
+      width: 3px;
+      height: 60px;
+      background: var(--color-accent);
+      border-radius: 2px;
+      transform-origin: bottom center;
+      transform: rotate(-120deg);
+    }
+
+    .readout[data-state="running"] .gauge__needle {
+      animation: scan 1.7s var(--ease-in-out) infinite alternate;
+    }
+
+    .gauge__face {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      line-height: 1;
+    }
+
+    .gauge__val {
+      font-family: var(--font-display);
+      font-size: 2.5rem;
+      font-weight: 700;
+      color: var(--color-ink);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .gauge__unit {
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      color: var(--color-muted);
+      margin-top: var(--space-2xs);
+    }
+
+    .idle__hint {
+      margin: 0;
+      max-width: 32ch;
+      text-align: center;
+      color: var(--color-muted);
+      font-size: var(--text-sm);
+    }
+
+    .readout:not([data-state="idle"]) .idle__hint {
+      display: none;
+    }
+
+    #status {
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      color: var(--color-muted);
+      text-align: center;
+      min-height: 1.2em;
+    }
+
+    #status.error {
+      color: var(--v-avoid);
+    }
+
+    /* ── Result render (classes consumed by render() in JS) ─────── */
+    #result {
+      display: none;
+      animation: rise var(--dur-long) var(--ease-out) both;
+    }
+
+    #result .card {
+      background: transparent;
+      border: 0;
+      padding: 0;
+    }
+
+    .verdict {
+      display: flex;
+      align-items: center;
+      gap: var(--space-lg);
+    }
+
+    .verdict .ring {
+      position: relative;
+      flex: none;
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+    }
+
+    .verdict .ring::before {
+      content: "";
+      position: absolute;
+      inset: 13px;
+      border-radius: 50%;
+      background: var(--color-paper-2);
+      box-shadow: var(--shadow-pop);
+    }
+
+    .verdict .ring::after {
+      content: "";
+      position: absolute;
+      inset: -9px;
+      border-radius: 50%;
+      background: repeating-conic-gradient(var(--color-rule-2) 0 1deg, transparent 1deg 10deg);
+      -webkit-mask: radial-gradient(circle, transparent 0 80px, #000 80px 85px, transparent 85px);
+      mask: radial-gradient(circle, transparent 0 80px, #000 80px 85px, transparent 85px);
+      z-index: -1;
+    }
+
+    .verdict .ring .num {
+      position: relative;
+      font-family: var(--font-display);
+      font-size: 2.4rem;
+      font-weight: 700;
+      color: var(--color-ink);
+      font-variant-numeric: tabular-nums;
+    }
+
+    .verdict .meta {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .badge {
+      display: inline-block;
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      font-weight: 600;
+      border-radius: var(--radius-pill);
+      padding: var(--space-2xs) var(--space-md);
+    }
+
+    .verdict .summary {
+      margin: var(--space-sm) 0 0;
+      color: var(--color-ink-2);
+    }
+
+    .snapshot {
+      color: var(--color-muted);
+      font-size: var(--text-sm);
+      margin: var(--space-md) 0 0;
+      font-style: italic;
+    }
+
+    .chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: var(--space-xs);
+      margin-top: var(--space-md);
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5ch;
+      font-family: var(--font-body);
+      font-size: var(--text-sm);
+      font-weight: 500;
+      border-radius: var(--radius-pill);
+      padding: var(--space-2xs) var(--space-sm);
+      background-color: var(--color-paper-3);
+      color: var(--color-ink-2);
+    }
+
+    .chip::before {
+      content: "";
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: var(--color-rule-2);
+    }
+
+    .chip.match::before {
+      background: var(--v-good);
+    }
+
+    .chip.mismatch::before {
+      background: var(--v-avoid);
+    }
+
+    .chip.neutral::before {
+      background: var(--color-muted);
+    }
+
+    .flags {
+      margin-top: var(--space-xl);
+    }
+
+    .flags h3 {
+      display: flex;
+      align-items: center;
+      gap: 0.6ch;
+      margin: 0 0 var(--space-md);
+      font-family: var(--font-display);
+      font-size: var(--text-md);
+      font-weight: 600;
+      letter-spacing: var(--tracking-tight);
+      color: var(--color-ink);
+    }
+
+    .star {
+      color: var(--color-accent);
+    }
+
+    .item {
+      border: var(--rule-hair) solid var(--color-rule);
+      border-radius: var(--radius-input);
+      background-color: var(--color-paper-2);
+      box-shadow: var(--shadow-pop);
+      padding: var(--space-sm) var(--space-md);
+      margin-bottom: var(--space-xs);
+    }
+
+    .item .t {
+      display: flex;
+      align-items: baseline;
+      flex-wrap: wrap;
+      gap: 0.6ch;
+      font-weight: 600;
+      color: var(--color-ink);
+    }
+
+    .item .t::before {
+      content: "";
+      align-self: center;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      flex: none;
+      background: var(--color-rule-2);
+    }
+
+    .item.assess .t::before {
+      background: var(--color-accent);
+    }
+
+    .item.year .t::before {
+      background: var(--color-neutral);
+    }
+
+    .item.alt .t::before {
+      background: var(--v-good);
+    }
+
+    .item .d {
+      font-size: var(--text-sm);
+      color: var(--color-muted);
+      margin-top: var(--space-2xs);
+    }
+
+    .alt-tag {
+      font-family: var(--font-body);
+      font-size: var(--text-xs);
+      font-weight: 500;
+      color: var(--color-muted);
+      border: var(--rule-hair) solid var(--color-rule);
+      border-radius: var(--radius-pill);
+      padding: 1px 8px;
+    }
+
+    .item code {
+      font-family: var(--font-mono);
+      font-size: 0.9em;
+      color: var(--color-ink-2);
+    }
+
+    .foot {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background-color: color-mix(in oklch, var(--color-paper) 88%, transparent);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-top: var(--rule-hair) solid var(--color-rule);
+      font-size: var(--text-sm);
+      color: var(--color-muted);
+      z-index: 100;
+    }
+
+    .foot__inner {
+      max-width: 72rem;
+      margin: 0 auto;
+      padding: var(--space-sm) var(--page-gutter);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.75rem 1.25rem;
+      flex-wrap: wrap;
+    }
+
+    .foot a {
+      color: var(--color-muted);
+      text-decoration: underline;
+      text-decoration-thickness: 1px;
+      text-underline-offset: 2px;
+      transition: color var(--dur-short) var(--ease-out);
+    }
+
+    .foot a:hover {
+      color: var(--color-ink);
+    }
+
+    .foot__links {
+      display: flex;
+      gap: 1.25rem;
+    }
+
+    .foot code {
+      font-family: var(--font-mono);
+      font-size: 0.9em;
+    }
+
+    /* ── Motion ─────────────────────────────────────────────────── */
+    @keyframes reveal {
+      from {
+        opacity: 0;
+        transform: translateY(14px);
       }
-      .rd__close:hover { background-color: var(--color-paper-3); }
-      .rd__close:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
 
-      .readout__state {
-        display: inline-flex; align-items: center; gap: 0.5ch;
-        font-family: var(--font-body); font-size: var(--text-xs); font-weight: 500; color: var(--color-muted);
-        background-color: var(--color-paper-3); border-radius: var(--radius-pill); padding: 4px 10px;
+      to {
+        opacity: 1;
+        transform: none;
       }
-      .readout__state::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--color-rule-2); }
-      .readout[data-state="running"] .readout__state::before { background: var(--color-accent); animation: blink 1s steps(2, jump-none) infinite; }
-      .readout[data-state="done"]    .readout__state::before { background: var(--v-good); }
-      .readout[data-state="error"]   .readout__state::before { background: var(--v-avoid); }
-      .readout__state em { font-style: normal; }
-      .readout[data-state="idle"]    .readout__state em::after { content: "idle"; }
-      .readout[data-state="running"] .readout__state em::after { content: "auditing"; }
-      .readout[data-state="done"]    .readout__state em::after { content: "ready"; }
-      .readout[data-state="error"]   .readout__state em::after { content: "error"; }
+    }
 
-      /* Idle / scanning instrument (gauge at the top of the drawer) */
-      .idle { display: flex; flex-direction: column; align-items: center; gap: var(--space-lg); padding-block: var(--space-md); }
-      .readout[data-state="done"] .idle { display: none; }
-      .gauge {
-        position: relative; width: 168px; height: 168px; border-radius: 50%;
-        background-color: var(--color-paper-2); border: var(--rule-hair) solid var(--color-rule);
-        box-shadow: var(--shadow-pop); display: grid; place-items: center;
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
       }
-      .gauge::after {
-        content: ""; position: absolute; inset: 9px; border-radius: 50%;
-        background: repeating-conic-gradient(var(--color-rule-2) 0 1deg, transparent 1deg 10deg);
-        -webkit-mask: radial-gradient(circle, transparent 0 66px, #000 66px 73px, transparent 73px);
-                mask: radial-gradient(circle, transparent 0 66px, #000 66px 73px, transparent 73px);
+
+      to {
+        opacity: 1;
+        transform: none;
       }
-      .gauge__needle {
-        position: absolute; bottom: 50%; left: calc(50% - 1.5px); width: 3px; height: 60px;
-        background: var(--color-accent); border-radius: 2px; transform-origin: bottom center; transform: rotate(-120deg);
+    }
+
+    @keyframes scan {
+      from {
+        transform: rotate(-120deg);
       }
-      .readout[data-state="running"] .gauge__needle { animation: scan 1.7s var(--ease-in-out) infinite alternate; }
-      .gauge__face { display: flex; flex-direction: column; align-items: center; line-height: 1; }
-      .gauge__val { font-family: var(--font-display); font-size: 2.5rem; font-weight: 700; color: var(--color-ink); font-variant-numeric: tabular-nums; }
-      .gauge__unit { font-family: var(--font-body); font-size: var(--text-sm); color: var(--color-muted); margin-top: var(--space-2xs); }
-      .idle__hint { margin: 0; max-width: 32ch; text-align: center; color: var(--color-muted); font-size: var(--text-sm); }
-      .readout:not([data-state="idle"]) .idle__hint { display: none; }
 
-      #status { font-family: var(--font-body); font-size: var(--text-sm); color: var(--color-muted); text-align: center; min-height: 1.2em; }
-      #status.error { color: var(--v-avoid); }
-
-      /* ── Result render (classes consumed by render() in JS) ─────── */
-      #result { display: none; animation: rise var(--dur-long) var(--ease-out) both; }
-      #result .card { background: transparent; border: 0; padding: 0; }
-      .verdict { display: flex; align-items: center; gap: var(--space-lg); }
-      .verdict .ring { position: relative; flex: none; width: 150px; height: 150px; border-radius: 50%; display: grid; place-items: center; }
-      .verdict .ring::before { content: ""; position: absolute; inset: 13px; border-radius: 50%; background: var(--color-paper-2); box-shadow: var(--shadow-pop); }
-      .verdict .ring::after {
-        content: ""; position: absolute; inset: -9px; border-radius: 50%;
-        background: repeating-conic-gradient(var(--color-rule-2) 0 1deg, transparent 1deg 10deg);
-        -webkit-mask: radial-gradient(circle, transparent 0 80px, #000 80px 85px, transparent 85px);
-                mask: radial-gradient(circle, transparent 0 80px, #000 80px 85px, transparent 85px);
-        z-index: -1;
+      to {
+        transform: rotate(120deg);
       }
-      .verdict .ring .num { position: relative; font-family: var(--font-display); font-size: 2.4rem; font-weight: 700; color: var(--color-ink); font-variant-numeric: tabular-nums; }
-      .verdict .meta { flex: 1; min-width: 0; }
-      .badge { display: inline-block; font-family: var(--font-body); font-size: var(--text-sm); font-weight: 600; border-radius: var(--radius-pill); padding: var(--space-2xs) var(--space-md); }
-      .verdict .summary { margin: var(--space-sm) 0 0; color: var(--color-ink-2); }
-      .snapshot { color: var(--color-muted); font-size: var(--text-sm); margin: var(--space-md) 0 0; font-style: italic; }
-      .chips { display: flex; flex-wrap: wrap; gap: var(--space-xs); margin-top: var(--space-md); }
-      .chip {
-        display: inline-flex; align-items: center; gap: 0.5ch;
-        font-family: var(--font-body); font-size: var(--text-sm); font-weight: 500;
-        border-radius: var(--radius-pill); padding: var(--space-2xs) var(--space-sm);
-        background-color: var(--color-paper-3); color: var(--color-ink-2);
+    }
+
+    @keyframes blink {
+      50% {
+        opacity: 0.35;
       }
-      .chip::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--color-rule-2); }
-      .chip.match::before { background: var(--v-good); }
-      .chip.mismatch::before { background: var(--v-avoid); }
-      .chip.neutral::before { background: var(--color-muted); }
-      .flags { margin-top: var(--space-xl); }
-      .flags h3 { display: flex; align-items: center; gap: 0.6ch; margin: 0 0 var(--space-md); font-family: var(--font-display); font-size: var(--text-md); font-weight: 600; letter-spacing: var(--tracking-tight); color: var(--color-ink); }
-      .star { color: var(--color-accent); }
-      .item { border: var(--rule-hair) solid var(--color-rule); border-radius: var(--radius-input); background-color: var(--color-paper-2); box-shadow: var(--shadow-pop); padding: var(--space-sm) var(--space-md); margin-bottom: var(--space-xs); }
-      .item .t { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0.6ch; font-weight: 600; color: var(--color-ink); }
-      .item .t::before { content: ""; align-self: center; width: 7px; height: 7px; border-radius: 50%; flex: none; background: var(--color-rule-2); }
-      .item.assess .t::before { background: var(--color-accent); }
-      .item.year .t::before { background: var(--color-neutral); }
-      .item.alt .t::before { background: var(--v-good); }
-      .item .d { font-size: var(--text-sm); color: var(--color-muted); margin-top: var(--space-2xs); }
-      .alt-tag { font-family: var(--font-body); font-size: var(--text-xs); font-weight: 500; color: var(--color-muted); border: var(--rule-hair) solid var(--color-rule); border-radius: var(--radius-pill); padding: 1px 8px; }
-      .item code { font-family: var(--font-mono); font-size: 0.9em; color: var(--color-ink-2); }
+    }
 
-      .foot { margin-top: var(--space-2xl); padding-top: var(--space-md); border-top: var(--rule-hair) solid var(--color-rule); font-size: var(--text-sm); color: var(--color-muted); text-align: center; }
-      .foot code { font-family: var(--font-mono); font-size: 0.9em; }
+    .hero {
+      animation: reveal var(--dur-long) var(--ease-out) both;
+    }
 
-      /* ── Motion ─────────────────────────────────────────────────── */
-      @keyframes reveal { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-      @keyframes rise   { from { opacity: 0; transform: translateY(8px); }  to { opacity: 1; transform: none; } }
-      @keyframes scan   { from { transform: rotate(-120deg); } to { transform: rotate(120deg); } }
-      @keyframes blink  { 50% { opacity: 0.35; } }
-      .hero { animation: reveal var(--dur-long) var(--ease-out) both; }
-
-      @media (max-width: 520px) { .opts__row { grid-template-columns: minmax(0, 1fr); } .verdict { flex-direction: column; align-items: flex-start; } }
-      @media (prefers-reduced-motion: reduce) {
-        *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; }
-        .readout[data-state="running"] .gauge__needle { animation: none; }
+    @media (max-width: 520px) {
+      .opts__row {
+        grid-template-columns: minmax(0, 1fr);
       }
-    </style>
-  </head>
-  <body>
-    <div class="shell">
-      <header class="topbar">
-        <span class="wordmark">Car<b>Audit</b><span class="dot">.</span></span>
-        <span class="topbar__meta">Console</span>
-      </header>
 
-      <main class="hero">
-        <h1>Read a listing like a mechanic.</h1>
-        <p class="sub">Paste a DoneDeal or AutoTrader listing URL and get an AI second opinion against your profile.</p>
+      .verdict {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
 
-        <form class="search" id="searchForm" autocomplete="off">
-          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true">
-            <circle cx="11" cy="11" r="7" /><line x1="21" y1="21" x2="16.65" y2="16.65" />
-          </svg>
-          <input id="url" type="url" placeholder="Paste a listing URL…" aria-label="Listing URL" />
-          <button id="go" type="submit" class="search__go">Audit</button>
-        </form>
-        <p class="search-note" id="searchNote"></p>
+    @media (prefers-reduced-motion: reduce) {
 
-        <!-- Expandable options drawer -->
-        <details class="opts" id="optsDrawer">
-          <summary>
-            Customise your profile
-            <span class="sum-hint">budget · fuel · must-haves</span>
-            <span class="chev">▸</span>
-          </summary>
-          <div class="opts__body">
-            <div class="opts__row">
-              <div class="opt"><span class="opt__label">Max budget (€)</span><input id="budgetMax" class="f" type="number" min="0" placeholder="30000" /></div>
-              <div class="opt"><span class="opt__label">Finance / mo (€)</span><input id="financePerMonthMax" class="f" type="number" min="0" placeholder="610" /></div>
-            </div>
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.001ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.001ms !important;
+      }
 
-            <div class="opt">
-              <span class="opt__label">Fuel</span>
-              <div class="chipgroup" data-group="fuel" data-multi="true" role="group" aria-label="Fuel">
-                <button type="button" class="chip-btn" data-value="petrol" aria-pressed="false">Petrol</button>
-                <button type="button" class="chip-btn" data-value="diesel" aria-pressed="false">Diesel</button>
-                <button type="button" class="chip-btn" data-value="hybrid" aria-pressed="false">Hybrid</button>
-                <button type="button" class="chip-btn" data-value="ev" aria-pressed="false">Electric</button>
-              </div>
-            </div>
+      .readout[data-state="running"] .gauge__needle {
+        animation: none;
+      }
+    }
+  </style>
+</head>
 
-            <div class="opt">
-              <span class="opt__label">Transmission</span>
-              <div class="chipgroup" data-group="transmission" data-multi="true" role="group" aria-label="Transmission">
-                <button type="button" class="chip-btn" data-value="automatic" aria-pressed="false">Automatic</button>
-                <button type="button" class="chip-btn" data-value="manual" aria-pressed="false">Manual</button>
-              </div>
-            </div>
+<body>
+  <div class="shell">
+    <header class="topbar">
+      <span class="wordmark">Car<b>Audit</b><span class="dot">.</span></span>
+      <span class="topbar__meta">Console</span>
+    </header>
 
-            <div class="opts__row">
-              <div class="opt"><span class="opt__label">Max mileage (km)</span><input id="maxMileageKm" class="f" type="number" min="0" placeholder="130000" /></div>
-              <div class="opt"><span class="opt__label">Earliest year</span><input id="minYear" class="f" type="number" min="1990" placeholder="2018" /></div>
-            </div>
+    <main class="hero">
+      <h1>Read a listing like a mechanic.</h1>
+      <p class="sub">Paste a DoneDeal or AutoTrader listing URL and get an AI second opinion against your profile.</p>
 
-            <div class="opt"><span class="opt__label">Intended use</span><input id="use" class="f" type="text" placeholder="family commuting" /></div>
+      <form class="search" id="searchForm" autocomplete="off">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" aria-hidden="true">
+          <circle cx="11" cy="11" r="7" />
+          <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        </svg>
+        <input id="url" type="url" placeholder="Paste a listing URL…" aria-label="Listing URL" />
+        <button id="go" type="submit" class="search__go">Audit</button>
+      </form>
+      <p class="search-note" id="searchNote"></p>
 
-            <div class="opt">
-              <span class="opt__label">Must-haves</span>
-              <span class="opt__hint">Tap the ones that matter, or type your own and press Enter.</span>
-              <div class="chipgroup" data-group="mustHaves" data-multi="true" role="group" aria-label="Must-haves">
-                <button type="button" class="chip-btn" data-value="Apple CarPlay" aria-pressed="false">Apple CarPlay</button>
-                <button type="button" class="chip-btn" data-value="Heated seats" aria-pressed="false">Heated seats</button>
-                <button type="button" class="chip-btn" data-value="Parking sensors" aria-pressed="false">Parking sensors</button>
-                <button type="button" class="chip-btn" data-value="Full service history" aria-pressed="false">Full service history</button>
-                <button type="button" class="chip-btn" data-value="Cruise control" aria-pressed="false">Cruise control</button>
-                <input id="mustHaveAdd" class="chip-add" type="text" placeholder="+ Add" aria-label="Add a must-have" />
-              </div>
-            </div>
+      <!-- Expandable options drawer -->
+      <details class="opts" id="optsDrawer">
+        <summary>
+          Customise your profile
+          <span class="sum-hint">budget · fuel · must-haves</span>
+          <span class="chev">▸</span>
+        </summary>
+        <div class="opts__body">
+          <div class="opts__row">
+            <div class="opt"><span class="opt__label">Max budget (€)</span><input id="budgetMax" class="f" type="number"
+                min="0" placeholder="30000" /></div>
+            <div class="opt"><span class="opt__label">Finance / mo (€)</span><input id="financePerMonthMax" class="f"
+                type="number" min="0" placeholder="610" /></div>
+          </div>
 
-            <div class="opt">
-              <span class="opt__label">Other notes</span>
-              <textarea id="notes" class="f" placeholder="Free-form must-haves and deal-breakers go here — e.g. “must have a tow bar; avoid Cat S/D write-offs or a timing belt that's overdue.”"></textarea>
-            </div>
-
-            <div class="opt">
-              <span class="opt__label">Listing text · AutoTrader only</span>
-              <textarea id="listingText" class="f" placeholder="For AutoTrader: run the copied script in the listing tab's DevTools console, then paste the page text here."></textarea>
-              <button type="button" id="copyScript" class="chip-btn" style="align-self: flex-start;">Copy extraction script</button>
-              <span class="opt__hint" id="listingHint"></span>
-            </div>
-
-            <details class="adv">
-              <summary>API key &amp; settings</summary>
-              <div class="opt">
-                <span class="opt__label">X-API-Key (only if the server sets AUDIT_API_KEY)</span>
-                <input id="apiKey" class="f" type="password" placeholder="paste AUDIT_API_KEY" autocomplete="off" />
-              </div>
-            </details>
-
-            <div class="opt opt--actions">
-              <button type="button" id="resetPrefs" class="btn-reset">Reset preferences</button>
+          <div class="opt">
+            <span class="opt__label">Fuel</span>
+            <div class="chipgroup" data-group="fuel" data-multi="true" role="group" aria-label="Fuel">
+              <button type="button" class="chip-btn" data-value="petrol" aria-pressed="false">Petrol</button>
+              <button type="button" class="chip-btn" data-value="diesel" aria-pressed="false">Diesel</button>
+              <button type="button" class="chip-btn" data-value="hybrid" aria-pressed="false">Hybrid</button>
+              <button type="button" class="chip-btn" data-value="ev" aria-pressed="false">Electric</button>
             </div>
           </div>
-        </details>
-      </main>
 
-      <footer class="foot">Car Audit · local test console · audits run against your own backend at <code>/audit</code>.</footer>
+          <div class="opt">
+            <span class="opt__label">Transmission</span>
+            <div class="chipgroup" data-group="transmission" data-multi="true" role="group" aria-label="Transmission">
+              <button type="button" class="chip-btn" data-value="automatic" aria-pressed="false">Automatic</button>
+              <button type="button" class="chip-btn" data-value="manual" aria-pressed="false">Manual</button>
+            </div>
+          </div>
+
+          <div class="opts__row">
+            <div class="opt"><span class="opt__label">Max mileage (km)</span><input id="maxMileageKm" class="f"
+                type="number" min="0" placeholder="130000" /></div>
+            <div class="opt"><span class="opt__label">Earliest year</span><input id="minYear" class="f" type="number"
+                min="1990" placeholder="2018" /></div>
+          </div>
+
+          <div class="opt"><span class="opt__label">Intended use</span><input id="use" class="f" type="text"
+              placeholder="family commuting" /></div>
+
+          <div class="opt">
+            <span class="opt__label">Must-haves</span>
+            <span class="opt__hint">Tap the ones that matter, or type your own and press Enter.</span>
+            <div class="chipgroup" data-group="mustHaves" data-multi="true" role="group" aria-label="Must-haves">
+              <button type="button" class="chip-btn" data-value="Apple CarPlay" aria-pressed="false">Apple
+                CarPlay</button>
+              <button type="button" class="chip-btn" data-value="Heated seats" aria-pressed="false">Heated
+                seats</button>
+              <button type="button" class="chip-btn" data-value="Parking sensors" aria-pressed="false">Parking
+                sensors</button>
+              <button type="button" class="chip-btn" data-value="Full service history" aria-pressed="false">Full service
+                history</button>
+              <button type="button" class="chip-btn" data-value="Cruise control" aria-pressed="false">Cruise
+                control</button>
+              <input id="mustHaveAdd" class="chip-add" type="text" placeholder="+ Add" aria-label="Add a must-have" />
+            </div>
+          </div>
+
+          <div class="opt">
+            <span class="opt__label">Other notes</span>
+            <textarea id="notes" class="f"
+              placeholder="Free-form must-haves and deal-breakers go here — e.g. “must have a tow bar; avoid Cat S/D write-offs or a timing belt that's overdue.”"></textarea>
+          </div>
+
+          <div class="opt">
+            <span class="opt__label">Listing text · AutoTrader only</span>
+            <textarea id="listingText" class="f"
+              placeholder="For AutoTrader: run the copied script in the listing tab's DevTools console, then paste the page text here."></textarea>
+            <button type="button" id="copyScript" class="chip-btn" style="align-self: flex-start;">Copy extraction
+              script</button>
+            <span class="opt__hint" id="listingHint"></span>
+          </div>
+
+          <details class="adv">
+            <summary>API key &amp; settings</summary>
+            <div class="opt">
+              <span class="opt__label">X-API-Key (only if the server sets AUDIT_API_KEY)</span>
+              <input id="apiKey" class="f" type="password" placeholder="paste AUDIT_API_KEY" autocomplete="off" />
+            </div>
+          </details>
+
+          <div class="opt opt--actions">
+            <button type="button" id="resetPrefs" class="btn-reset">Reset preferences</button>
+          </div>
+        </div>
+      </details>
+    </main>
+
+    <footer class="foot">
+      <div class="foot__inner">
+        <span>Car Audit · console.</span>
+        <span class="foot__links">
+          <a href="/privacy">Privacy</a>
+          <a href="/support">Support</a>
+        </span>
+      </div>
+    </footer>
+  </div>
+
+  <!-- Readout side drawer (opens on audit) -->
+  <div class="scrim" id="scrim"></div>
+  <aside class="readout" id="readout" data-state="idle" role="dialog" aria-label="Audit readout" aria-hidden="true">
+    <div class="rd__head">
+      <span class="rd__title">Audit readout</span>
+      <span class="readout__state"><em></em></span>
+      <button type="button" id="closeReadout" class="rd__close" aria-label="Close readout">×</button>
     </div>
 
-    <!-- Readout side drawer (opens on audit) -->
-    <div class="scrim" id="scrim"></div>
-    <aside class="readout" id="readout" data-state="idle" role="dialog" aria-label="Audit readout" aria-hidden="true">
-      <div class="rd__head">
-        <span class="rd__title">Audit readout</span>
-        <span class="readout__state"><em></em></span>
-        <button type="button" id="closeReadout" class="rd__close" aria-label="Close readout">×</button>
+    <div class="idle">
+      <div class="gauge" aria-hidden="true">
+        <span class="gauge__needle"></span>
+        <span class="gauge__face">
+          <span class="gauge__val">—</span>
+          <span class="gauge__unit">fit score</span>
+        </span>
       </div>
+      <p class="idle__hint">Reading the listing…</p>
+    </div>
 
-      <div class="idle">
-        <div class="gauge" aria-hidden="true">
-          <span class="gauge__needle"></span>
-          <span class="gauge__face">
-            <span class="gauge__val">—</span>
-            <span class="gauge__unit">fit score</span>
-          </span>
-        </div>
-        <p class="idle__hint">Reading the listing…</p>
-      </div>
+    <div id="status"></div>
+    <div id="result"></div>
+  </aside>
 
-      <div id="status"></div>
-      <div id="result"></div>
-    </aside>
-
-    <!-- The AutoTrader extraction snippet (script.js), copied to the clipboard by
+  <!-- The AutoTrader extraction snippet (script.js), copied to the clipboard by
          the "Copy extraction script" button. Run it in the AutoTrader tab's
          DevTools console; it copies the page text for pasting into Listing text. -->
-    <script type="text/plain" id="extractScript">(() => {
+  <script type="text/plain" id="extractScript">(() => {
     // 1) Rendered visible text — what your browser sees *after* passing Cloudflare
     const text = document.body.innerText.replace(/\n{3,}/g, "\n\n").trim();
 
@@ -530,207 +1244,207 @@
     catch { console.log("\n(full text at window.__listing.text)"); }
 })();</script>
 
-    <script>
-      const $ = (id) => document.getElementById(id);
-      const KEY_STORE = "carAuditApiKey";
-      const readout = $("readout");
-      const scrim = $("scrim");
-      const setReadout = (state) => { readout.dataset.state = state; };
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const KEY_STORE = "carAuditApiKey";
+    const readout = $("readout");
+    const scrim = $("scrim");
+    const setReadout = (state) => { readout.dataset.state = state; };
 
-      // AutoTrader blocks server-side fetches, so for those listings we audit the
-      // page text the user pastes in (extracted via the snippet below) instead.
-      const AUTOTRADER_HOSTS = ["autotrader.co.uk"];
-      const hostOf = (url) => { try { return new URL(url).hostname.toLowerCase(); } catch { return ""; } };
-      const isAutotrader = (url) => {
-        const h = hostOf(url);
-        return AUTOTRADER_HOSTS.some((d) => h === d || h.endsWith("." + d));
-      };
+    // AutoTrader blocks server-side fetches, so for those listings we audit the
+    // page text the user pastes in (extracted via the snippet below) instead.
+    const AUTOTRADER_HOSTS = ["autotrader.co.uk"];
+    const hostOf = (url) => { try { return new URL(url).hostname.toLowerCase(); } catch { return ""; } };
+    const isAutotrader = (url) => {
+      const h = hostOf(url);
+      return AUTOTRADER_HOSTS.some((d) => h === d || h.endsWith("." + d));
+    };
 
-      // Listing-detail routes we audit (host + path prefix). Mirrors LISTING_ROUTES
-      // in src/server.ts; the backend rejects anything else with 400.
-      const LISTING_ROUTES = [
-        { host: "donedeal.ie", prefix: "/cars-for-sale/" },
-        { host: "autotrader.co.uk", prefix: "/car-details/" },
-      ];
-      const isAuditableUrl = (url) => {
-        let u;
-        try { u = new URL(url); } catch { return false; }
-        if (u.protocol !== "https:" && u.protocol !== "http:") return false;
-        const host = u.hostname.toLowerCase();
-        const path = u.pathname.toLowerCase();
-        return LISTING_ROUTES.some(
-          (r) => (host === r.host || host.endsWith("." + r.host)) && path.startsWith(r.prefix),
-        );
-      };
+    // Listing-detail routes we audit (host + path prefix). Mirrors LISTING_ROUTES
+    // in src/server.ts; the backend rejects anything else with 400.
+    const LISTING_ROUTES = [
+      { host: "donedeal.ie", prefix: "/cars-for-sale/" },
+      { host: "autotrader.co.uk", prefix: "/car-details/" },
+    ];
+    const isAuditableUrl = (url) => {
+      let u;
+      try { u = new URL(url); } catch { return false; }
+      if (u.protocol !== "https:" && u.protocol !== "http:") return false;
+      const host = u.hostname.toLowerCase();
+      const path = u.pathname.toLowerCase();
+      return LISTING_ROUTES.some(
+        (r) => (host === r.host || host.endsWith("." + r.host)) && path.startsWith(r.prefix),
+      );
+    };
 
-      // --- chip groups (single-select fuel/transmission, multi-select must-haves) ---
-      function chipValue(group) {
-        const b = document.querySelector(`.chipgroup[data-group="${group}"] [aria-pressed="true"]`);
-        return b ? b.dataset.value : undefined;
-      }
-      function chipValues(group) {
-        return [...document.querySelectorAll(`.chipgroup[data-group="${group}"] [aria-pressed="true"]`)].map((b) => b.dataset.value);
-      }
-      document.querySelectorAll(".chipgroup").forEach((group) => {
-        const multi = group.dataset.multi === "true";
-        group.addEventListener("click", (e) => {
-          const btn = e.target.closest(".chip-btn");
-          if (!btn) return;
-          const on = btn.getAttribute("aria-pressed") === "true";
-          if (!multi) {
-            group.querySelectorAll(".chip-btn").forEach((b) => b.setAttribute("aria-pressed", "false"));
-          }
-          btn.setAttribute("aria-pressed", on ? "false" : "true");
-        });
-      });
-
-      // Inline freeform must-haves: type + Enter creates a selected chip.
-      const mustHaveGroup = document.querySelector('.chipgroup[data-group="mustHaves"]');
-      function addMustHave(value) {
-        value = value.trim();
-        if (!value) return;
-        const existing = [...mustHaveGroup.querySelectorAll(".chip-btn")]
-          .find((b) => b.dataset.value.toLowerCase() === value.toLowerCase());
-        if (existing) { existing.setAttribute("aria-pressed", "true"); return; }
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = "chip-btn";
-        btn.dataset.value = value;
-        btn.dataset.custom = "true";
-        btn.setAttribute("aria-pressed", "true");
-        btn.textContent = value;
-        mustHaveGroup.insertBefore(btn, $("mustHaveAdd"));
-      }
-      $("mustHaveAdd").addEventListener("keydown", (e) => {
-        if (e.key === "Enter") { e.preventDefault(); addMustHave(e.target.value); e.target.value = ""; }
-      });
-
-      // Reset preferences (leaves the URL, listing text, and API key alone).
-      function resetPrefs() {
-        ["budgetMax", "financePerMonthMax", "maxMileageKm", "minYear", "use", "notes"].forEach((id) => { $(id).value = ""; });
-        document.querySelectorAll(".chipgroup .chip-btn").forEach((b) => b.setAttribute("aria-pressed", "false"));
-        mustHaveGroup.querySelectorAll('.chip-btn[data-custom="true"]').forEach((b) => b.remove());
-        $("mustHaveAdd").value = "";
-        setSearchNote("");
-      }
-      $("resetPrefs").addEventListener("click", resetPrefs);
-
-      // --- listing-text hint (AutoTrader) ---
-      function updateListingHint() {
-        const hint = $("listingHint");
-        const url = $("url").value.trim();
-        if (isAutotrader(url)) {
-          hint.textContent = "AutoTrader blocks server fetches — paste the page text (required).";
-        } else if (url) {
-          hint.textContent = "Not needed for this site — used only for AutoTrader.";
-        } else {
-          hint.textContent = "Used only for AutoTrader listings.";
+    // --- chip groups (single-select fuel/transmission, multi-select must-haves) ---
+    function chipValue(group) {
+      const b = document.querySelector(`.chipgroup[data-group="${group}"] [aria-pressed="true"]`);
+      return b ? b.dataset.value : undefined;
+    }
+    function chipValues(group) {
+      return [...document.querySelectorAll(`.chipgroup[data-group="${group}"] [aria-pressed="true"]`)].map((b) => b.dataset.value);
+    }
+    document.querySelectorAll(".chipgroup").forEach((group) => {
+      const multi = group.dataset.multi === "true";
+      group.addEventListener("click", (e) => {
+        const btn = e.target.closest(".chip-btn");
+        if (!btn) return;
+        const on = btn.getAttribute("aria-pressed") === "true";
+        if (!multi) {
+          group.querySelectorAll(".chip-btn").forEach((b) => b.setAttribute("aria-pressed", "false"));
         }
-      }
-
-      const EXTRACTION_SCRIPT = ($("extractScript").textContent || "").trim();
-      $("copyScript").addEventListener("click", async () => {
-        const btn = $("copyScript");
-        try {
-          await navigator.clipboard.writeText(EXTRACTION_SCRIPT);
-          btn.textContent = "Copied ✓";
-        } catch {
-          btn.textContent = "Copy failed";
-        }
-        setTimeout(() => { btn.textContent = "Copy extraction script"; }, 1600);
+        btn.setAttribute("aria-pressed", on ? "false" : "true");
       });
-      $("url").addEventListener("input", updateListingHint);
-      updateListingHint();
+    });
 
-      // remember the API key locally so you only type it once
-      $("apiKey").value = localStorage.getItem(KEY_STORE) || "";
-      $("apiKey").addEventListener("change", (e) => localStorage.setItem(KEY_STORE, e.target.value.trim()));
+    // Inline freeform must-haves: type + Enter creates a selected chip.
+    const mustHaveGroup = document.querySelector('.chipgroup[data-group="mustHaves"]');
+    function addMustHave(value) {
+      value = value.trim();
+      if (!value) return;
+      const existing = [...mustHaveGroup.querySelectorAll(".chip-btn")]
+        .find((b) => b.dataset.value.toLowerCase() === value.toLowerCase());
+      if (existing) { existing.setAttribute("aria-pressed", "true"); return; }
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "chip-btn";
+      btn.dataset.value = value;
+      btn.dataset.custom = "true";
+      btn.setAttribute("aria-pressed", "true");
+      btn.textContent = value;
+      mustHaveGroup.insertBefore(btn, $("mustHaveAdd"));
+    }
+    $("mustHaveAdd").addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); addMustHave(e.target.value); e.target.value = ""; }
+    });
 
-      const num = (id) => { const v = $(id).value.trim(); return v === "" ? undefined : Number(v); };
-      const str = (id) => { const v = $(id).value.trim(); return v === "" ? undefined : v; };
+    // Reset preferences (leaves the URL, listing text, and API key alone).
+    function resetPrefs() {
+      ["budgetMax", "financePerMonthMax", "maxMileageKm", "minYear", "use", "notes"].forEach((id) => { $(id).value = ""; });
+      document.querySelectorAll(".chipgroup .chip-btn").forEach((b) => b.setAttribute("aria-pressed", "false"));
+      mustHaveGroup.querySelectorAll('.chip-btn[data-custom="true"]').forEach((b) => b.remove());
+      $("mustHaveAdd").value = "";
+      setSearchNote("");
+    }
+    $("resetPrefs").addEventListener("click", resetPrefs);
 
-      function buildProfile() {
-        const fuel = chipValues("fuel");
-        const transmission = chipValues("transmission");
-        const mustHaves = chipValues("mustHaves");
-        const p = {
-          budgetMax: num("budgetMax"),
-          financePerMonthMax: num("financePerMonthMax"),
-          use: str("use"),
-          maxMileageKm: num("maxMileageKm"),
-          minYear: num("minYear"),
-          transmission: transmission.length ? transmission : undefined,
-          fuel: fuel.length ? fuel : undefined,
-          mustHaves: mustHaves.length ? mustHaves : undefined,
-          // Deal-breakers + free-form must-haves live in `notes` (see placeholder).
-          notes: str("notes"),
-        };
-        Object.keys(p).forEach((k) => p[k] === undefined && delete p[k]);
-        return p;
+    // --- listing-text hint (AutoTrader) ---
+    function updateListingHint() {
+      const hint = $("listingHint");
+      const url = $("url").value.trim();
+      if (isAutotrader(url)) {
+        hint.textContent = "AutoTrader blocks server fetches — paste the page text (required).";
+      } else if (url) {
+        hint.textContent = "Not needed for this site — used only for AutoTrader.";
+      } else {
+        hint.textContent = "Used only for AutoTrader listings.";
       }
+    }
 
-      // Verdict colours reference CSS tokens so the page stays single-sourced.
-      const VERDICT = {
-        good_fit:             { label: "Good fit",             color: "var(--v-good)" },
-        proceed_with_caution: { label: "Proceed with caution", color: "var(--v-caution)" },
-        avoid:                { label: "Avoid",                color: "var(--v-avoid)" },
+    const EXTRACTION_SCRIPT = ($("extractScript").textContent || "").trim();
+    $("copyScript").addEventListener("click", async () => {
+      const btn = $("copyScript");
+      try {
+        await navigator.clipboard.writeText(EXTRACTION_SCRIPT);
+        btn.textContent = "Copied ✓";
+      } catch {
+        btn.textContent = "Copy failed";
+      }
+      setTimeout(() => { btn.textContent = "Copy extraction script"; }, 1600);
+    });
+    $("url").addEventListener("input", updateListingHint);
+    updateListingHint();
+
+    // remember the API key locally so you only type it once
+    $("apiKey").value = localStorage.getItem(KEY_STORE) || "";
+    $("apiKey").addEventListener("change", (e) => localStorage.setItem(KEY_STORE, e.target.value.trim()));
+
+    const num = (id) => { const v = $(id).value.trim(); return v === "" ? undefined : Number(v); };
+    const str = (id) => { const v = $(id).value.trim(); return v === "" ? undefined : v; };
+
+    function buildProfile() {
+      const fuel = chipValues("fuel");
+      const transmission = chipValues("transmission");
+      const mustHaves = chipValues("mustHaves");
+      const p = {
+        budgetMax: num("budgetMax"),
+        financePerMonthMax: num("financePerMonthMax"),
+        use: str("use"),
+        maxMileageKm: num("maxMileageKm"),
+        minYear: num("minYear"),
+        transmission: transmission.length ? transmission : undefined,
+        fuel: fuel.length ? fuel : undefined,
+        mustHaves: mustHaves.length ? mustHaves : undefined,
+        // Deal-breakers + free-form must-haves live in `notes` (see placeholder).
+        notes: str("notes"),
       };
+      Object.keys(p).forEach((k) => p[k] === undefined && delete p[k]);
+      return p;
+    }
 
-      function setStatus(msg, isError) {
-        const el = $("status");
-        el.textContent = msg || "";
-        el.className = isError ? "error" : "";
-      }
-      function setSearchNote(msg, isError) {
-        const el = $("searchNote");
-        el.textContent = msg || "";
-        el.className = "search-note" + (isError ? " error" : "");
-      }
+    // Verdict colours reference CSS tokens so the page stays single-sourced.
+    const VERDICT = {
+      good_fit: { label: "Good fit", color: "var(--v-good)" },
+      proceed_with_caution: { label: "Proceed with caution", color: "var(--v-caution)" },
+      avoid: { label: "Avoid", color: "var(--v-avoid)" },
+    };
 
-      // --- readout drawer open/close ---
-      function openReadout() {
-        readout.classList.add("open");
-        scrim.classList.add("open");
-        readout.setAttribute("aria-hidden", "false");
-        $("closeReadout").focus();
-      }
-      function closeReadout() {
-        readout.classList.remove("open");
-        scrim.classList.remove("open");
-        readout.setAttribute("aria-hidden", "true");
-        $("go").focus();
-      }
-      $("closeReadout").addEventListener("click", closeReadout);
-      scrim.addEventListener("click", closeReadout);
-      document.addEventListener("keydown", (e) => {
-        if (e.key === "Escape" && readout.classList.contains("open")) closeReadout();
-      });
+    function setStatus(msg, isError) {
+      const el = $("status");
+      el.textContent = msg || "";
+      el.className = isError ? "error" : "";
+    }
+    function setSearchNote(msg, isError) {
+      const el = $("searchNote");
+      el.textContent = msg || "";
+      el.className = "search-note" + (isError ? " error" : "");
+    }
 
-      function render(audit) {
-        const v = VERDICT[audit.verdict] || { label: audit.verdict, color: "var(--color-muted)" };
-        const score = Math.max(0, Math.min(100, Number(audit.score) || 0));
+    // --- readout drawer open/close ---
+    function openReadout() {
+      readout.classList.add("open");
+      scrim.classList.add("open");
+      readout.setAttribute("aria-hidden", "false");
+      $("closeReadout").focus();
+    }
+    function closeReadout() {
+      readout.classList.remove("open");
+      scrim.classList.remove("open");
+      readout.setAttribute("aria-hidden", "true");
+      $("go").focus();
+    }
+    $("closeReadout").addEventListener("click", closeReadout);
+    scrim.addEventListener("click", closeReadout);
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && readout.classList.contains("open")) closeReadout();
+    });
 
-        const chips = (audit.fitChips || []).map((c) =>
-          `<span class="chip ${c.status}">${esc(c.label)}</span>`).join("");
-        const chipsBlock = chips ? `<div class="chips">${chips}</div>` : "";
+    function render(audit) {
+      const v = VERDICT[audit.verdict] || { label: audit.verdict, color: "var(--color-muted)" };
+      const score = Math.max(0, Math.min(100, Number(audit.score) || 0));
 
-        const insights = (arr, cls) => (arr || []).map((f) => `
+      const chips = (audit.fitChips || []).map((c) =>
+        `<span class="chip ${c.status}">${esc(c.label)}</span>`).join("");
+      const chipsBlock = chips ? `<div class="chips">${chips}</div>` : "";
+
+      const insights = (arr, cls) => (arr || []).map((f) => `
           <div class="item ${cls}">
             <div class="t">${esc(f.title)}</div>
             <div class="d">${esc(f.detail)}</div>
           </div>`).join("");
 
-        const insightSection = (title, arr, cls) =>
-          (arr && arr.length) ? `<div class="flags"><h3><span class="star">★</span> ${title}</h3>${insights(arr, cls)}</div>` : "";
+      const insightSection = (title, arr, cls) =>
+        (arr && arr.length) ? `<div class="flags"><h3><span class="star">★</span> ${title}</h3>${insights(arr, cls)}</div>` : "";
 
-        const alts = (audit.alternatives || []).map((a) => `
+      const alts = (audit.alternatives || []).map((a) => `
           <div class="item alt">
             <div class="t">${esc(a.car)}<span class="alt-tag">${a.sameModelNewerYear ? "newer year" : "different car"}</span></div>
             <div class="d">${esc(a.reason)}</div>
           </div>`).join("");
-        const altSection = alts ? `<div class="flags"><h3><span class="star">★</span> Better options</h3>${alts}</div>` : "";
+      const altSection = alts ? `<div class="flags"><h3><span class="star">★</span> Better options</h3>${alts}</div>` : "";
 
-        $("result").innerHTML = `
+      $("result").innerHTML = `
           <div class="card">
             <div class="verdict">
               <div class="ring" style="background: conic-gradient(${v.color} ${score * 3.6}deg, var(--color-rule) 0deg);">
@@ -748,81 +1462,82 @@
             ${altSection}
             ${priceBlock(audit.priceHistory)}
           </div>`;
-        $("result").style.display = "block";
-        setReadout("done");
-      }
+      $("result").style.display = "block";
+      setReadout("done");
+    }
 
-      // Price tracking is only present when DATABASE_URL is set AND the audit
-      // yielded a fingerprint (make/model/year/mileage + numeric price). Its
-      // presence here is the proof a DB row was written on this cache miss.
-      function priceBlock(h) {
-        if (!h) return "";
-        const sym = h.market === "uk" ? "£" : "€"; // currency follows the market
-        const money = (n) => sym + Number(n).toLocaleString();
-        const date = (iso) => { try { return new Date(iso).toLocaleString(); } catch { return iso; } };
-        const obs = (h.observations || []).map((o) => `
+    // Price tracking is only present when DATABASE_URL is set AND the audit
+    // yielded a fingerprint (make/model/year/mileage + numeric price). Its
+    // presence here is the proof a DB row was written on this cache miss.
+    function priceBlock(h) {
+      if (!h) return "";
+      const sym = h.market === "uk" ? "£" : "€"; // currency follows the market
+      const money = (n) => sym + Number(n).toLocaleString();
+      const date = (iso) => { try { return new Date(iso).toLocaleString(); } catch { return iso; } };
+      const obs = (h.observations || []).map((o) => `
           <div class="item">
             <div class="t">${money(o.price)}<span class="alt-tag">${Number(o.mileageKm).toLocaleString()} km</span></div>
             <div class="d">${esc(date(o.observedAt))}</div>
           </div>`).join("");
-        const n = (h.observations || []).length;
-        return `<div class="flags">
+      const n = (h.observations || []).length;
+      return `<div class="flags">
           <h3><span class="star">★</span> Price tracking · DB write (${esc((h.market || "").toUpperCase())})</h3>
           <p class="snapshot">Recorded as car <code>${esc(h.carId)}</code> — ${n} observation${n === 1 ? "" : "s"}, current ${money(h.currentPrice)}.</p>
           ${obs}
         </div>`;
+    }
+
+    function esc(s) {
+      return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+    }
+
+    async function audit() {
+      const url = $("url").value.trim();
+      if (!url) { setSearchNote("Enter a listing URL first.", true); return; }
+      if (!isAuditableUrl(url)) {
+        setSearchNote("Enter a DoneDeal car ad (…/cars-for-sale/…) or an AutoTrader UK car-details page.", true);
+        return;
       }
 
-      function esc(s) {
-        return String(s).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+      const listingText = $("listingText").value.trim();
+      if (isAutotrader(url) && !listingText) {
+        setSearchNote("AutoTrader needs the page text — open Customise, copy the script, run it on the AutoTrader tab, then paste it in.", true);
+        $("optsDrawer").open = true;
+        $("listingText").focus();
+        return;
       }
 
-      async function audit() {
-        const url = $("url").value.trim();
-        if (!url) { setSearchNote("Enter a listing URL first.", true); return; }
-        if (!isAuditableUrl(url)) {
-          setSearchNote("Enter a DoneDeal car ad (…/cars-for-sale/…) or an AutoTrader UK car-details page.", true);
-          return;
-        }
+      setSearchNote("");
+      openReadout();
+      $("result").style.display = "none";
+      $("go").disabled = true;
+      setReadout("running");
+      setStatus("Reading the listing and auditing… (first run can take ~20s)");
 
-        const listingText = $("listingText").value.trim();
-        if (isAutotrader(url) && !listingText) {
-          setSearchNote("AutoTrader needs the page text — open Customise, copy the script, run it on the AutoTrader tab, then paste it in.", true);
-          $("optsDrawer").open = true;
-          $("listingText").focus();
-          return;
-        }
+      const reqBody = { profile: buildProfile(), url };
+      // Only AutoTrader uses the pasted text; other sites are fetched server-side.
+      if (isAutotrader(url)) reqBody.listingText = listingText;
 
-        setSearchNote("");
-        openReadout();
-        $("result").style.display = "none";
-        $("go").disabled = true;
-        setReadout("running");
-        setStatus("Reading the listing and auditing… (first run can take ~20s)");
-
-        const reqBody = { profile: buildProfile(), url };
-        // Only AutoTrader uses the pasted text; other sites are fetched server-side.
-        if (isAutotrader(url)) reqBody.listingText = listingText;
-
-        try {
-          const res = await fetch("/audit", {
-            method: "POST",
-            headers: { "Content-Type": "application/json", "X-API-Key": $("apiKey").value.trim() },
-            body: JSON.stringify(reqBody),
-          });
-          const data = await res.json();
-          if (!res.ok) { setStatus(`Error ${res.status}: ${data.error || "request failed"}`, true); setReadout("error"); return; }
-          setStatus("");
-          render(data);
-        } catch (err) {
-          setStatus("Network error: " + err.message, true);
-          setReadout("error");
-        } finally {
-          $("go").disabled = false;
-        }
+      try {
+        const res = await fetch("/audit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "X-API-Key": $("apiKey").value.trim() },
+          body: JSON.stringify(reqBody),
+        });
+        const data = await res.json();
+        if (!res.ok) { setStatus(`Error ${res.status}: ${data.error || "request failed"}`, true); setReadout("error"); return; }
+        setStatus("");
+        render(data);
+      } catch (err) {
+        setStatus("Network error: " + err.message, true);
+        setReadout("error");
+      } finally {
+        $("go").disabled = false;
       }
+    }
 
-      $("searchForm").addEventListener("submit", (e) => { e.preventDefault(); audit(); });
-    </script>
-  </body>
+    $("searchForm").addEventListener("submit", (e) => { e.preventDefault(); audit(); });
+  </script>
+</body>
+
 </html>
