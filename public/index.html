@@ -263,6 +263,148 @@
       color: var(--v-avoid);
     }
 
+    /* ── Install CTA (Add to Chrome) ────────────────────────────── */
+    .btn-chrome {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.7ch;
+      font-family: var(--font-body);
+      font-size: var(--text-md);
+      font-weight: 600;
+      color: var(--color-on-accent);
+      background-color: var(--color-accent);
+      border: 0;
+      border-radius: var(--radius-pill);
+      box-shadow: var(--shadow-accent);
+      padding: 13px 24px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: filter var(--dur-short) var(--ease-out), transform var(--dur-micro) var(--ease-out);
+    }
+
+    .btn-chrome:hover {
+      filter: brightness(1.06);
+    }
+
+    .btn-chrome:active {
+      transform: translateY(1px);
+    }
+
+    .btn-chrome:focus-visible {
+      outline: 2px solid var(--color-focus);
+      outline-offset: 3px;
+    }
+
+    .btn-chrome svg {
+      flex: none;
+    }
+
+    /* Compact variant for the topbar */
+    .btn-chrome--sm {
+      font-size: var(--text-sm);
+      padding: 8px 15px;
+      box-shadow: var(--shadow-pop);
+    }
+
+    .cta {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: var(--space-xs);
+      margin-top: var(--space-xl);
+    }
+
+    .cta__note {
+      font-size: var(--text-sm);
+      color: var(--color-muted);
+    }
+
+    .try-hint {
+      display: flex;
+      align-items: center;
+      gap: var(--space-md);
+      max-width: 360px;
+      margin: var(--space-lg) auto 0;
+      font-size: var(--text-sm);
+      color: var(--color-muted);
+    }
+
+    .try-hint::before,
+    .try-hint::after {
+      content: "";
+      flex: 1;
+      height: var(--rule-hair);
+      background: var(--color-rule);
+    }
+
+    /* ── Feature bullets ────────────────────────────────────────── */
+    .features {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: var(--space-lg);
+      max-width: 720px;
+      margin: var(--space-2xl) auto 0;
+      text-align: left;
+    }
+
+    .feat {
+      display: flex;
+      flex-direction: column;
+      gap: var(--space-2xs);
+      min-width: 0;
+    }
+
+    .feat__icon {
+      width: 36px;
+      height: 36px;
+      display: grid;
+      place-items: center;
+      border-radius: 10px;
+      background-color: var(--color-accent-soft);
+      color: var(--color-accent);
+      margin-bottom: var(--space-2xs);
+    }
+
+    .feat__t {
+      font-family: var(--font-display);
+      font-size: var(--text-base);
+      font-weight: 600;
+      letter-spacing: var(--tracking-tight);
+      color: var(--color-ink);
+    }
+
+    .feat__d {
+      font-size: var(--text-sm);
+      color: var(--color-muted);
+    }
+
+    .trustline {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.6ch;
+      margin-top: var(--space-xl);
+      font-size: var(--text-sm);
+      font-weight: 500;
+      color: var(--color-neutral);
+    }
+
+    .trustline svg {
+      flex: none;
+      color: var(--v-good);
+    }
+
+    @media (max-width: 680px) {
+      .features {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 380px) {
+      .features {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
     /* ── Options drawer (expandable) ────────────────────────────── */
     .opts {
       max-width: 640px;
@@ -1072,12 +1214,39 @@
   <div class="shell">
     <header class="topbar">
       <span class="wordmark">Car<b>Audit</b><span class="dot">.</span></span>
-      <span class="topbar__meta">Console</span>
+      <!-- href set from STORE_URL (JS constant below) on every [data-store-url] element. -->
+      <a class="btn-chrome btn-chrome--sm" data-store-url href="#" target="_blank" rel="noopener noreferrer">
+        <svg width="16" height="16" viewBox="0 0 48 48" aria-hidden="true">
+          <circle cx="24" cy="24" r="9.5" fill="#fff" />
+          <path fill="#ea4335" d="M24 14h20.7A24 24 0 0 0 3.3 12l9.4 16.3A11 11 0 0 1 24 14z" />
+          <path fill="#4285f4" d="M33 24a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+          <path fill="#34a853" d="M27.4 38.2 17.9 21.9A11 11 0 0 0 28 31.7L19.6 47A24 24 0 0 0 44.7 14H35a11 11 0 0 1-7.6 24.2z" />
+          <path fill="#fbbc05" d="M12.7 28.3 3.3 12A24 24 0 0 0 19.6 47l8.4-15.3a11 11 0 0 1-15.3-3.4z" />
+        </svg>
+        Add to Chrome
+      </a>
     </header>
 
     <main class="hero">
-      <h1>Read a listing like a mechanic.</h1>
-      <p class="sub">Paste a DoneDeal or AutoTrader listing URL and get an AI second opinion against your profile.</p>
+      <h1>An independent AI audit for used-car listings.</h1>
+      <p class="sub">Audit any DoneDeal or AutoTrader listing against your buyer profile — fit score, hidden
+        risks, and better alternatives. Buy with confidence.</p>
+
+      <div class="cta">
+        <a class="btn-chrome" data-store-url href="#" target="_blank" rel="noopener noreferrer">
+          <svg width="20" height="20" viewBox="0 0 48 48" aria-hidden="true">
+            <circle cx="24" cy="24" r="9.5" fill="#fff" />
+            <path fill="#ea4335" d="M24 14h20.7A24 24 0 0 0 3.3 12l9.4 16.3A11 11 0 0 1 24 14z" />
+            <path fill="#4285f4" d="M33 24a9 9 0 1 1-18 0 9 9 0 0 1 18 0z" />
+            <path fill="#34a853" d="M27.4 38.2 17.9 21.9A11 11 0 0 0 28 31.7L19.6 47A24 24 0 0 0 44.7 14H35a11 11 0 0 1-7.6 24.2z" />
+            <path fill="#fbbc05" d="M12.7 28.3 3.3 12A24 24 0 0 0 19.6 47l8.4-15.3a11 11 0 0 1-15.3-3.4z" />
+          </svg>
+          Add to Chrome — it's free
+        </a>
+        <span class="cta__note">One-click audits while you browse · installs in seconds</span>
+      </div>
+
+      <p class="try-hint">or try it now — no install</p>
 
       <form class="search" id="searchForm" autocomplete="off">
         <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
@@ -1179,6 +1348,64 @@
           </div>
         </div>
       </details>
+
+      <section class="features" aria-label="What you get">
+        <div class="feat">
+          <span class="feat__icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 3 4 6v6c0 4.5 3 7.5 8 9 5-1.5 8-4.5 8-9V6l-8-3Z" />
+              <path d="m9 12 2 2 4-4" />
+            </svg>
+          </span>
+          <span class="feat__t">Fit score &amp; verdict</span>
+          <span class="feat__d">Instant match against your buyer profile.</span>
+        </div>
+        <div class="feat">
+          <span class="feat__icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="7" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              <line x1="11" y1="8" x2="11" y2="11.5" />
+              <line x1="11" y1="14" x2="11" y2="14.01" />
+            </svg>
+          </span>
+          <span class="feat__t">Hidden risk assessment</span>
+          <span class="feat__d">Spot the issues others miss.</span>
+        </div>
+        <div class="feat">
+          <span class="feat__icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 3v18h18" />
+              <path d="m7 14 4-4 3 3 5-6" />
+            </svg>
+          </span>
+          <span class="feat__t">Price history</span>
+          <span class="feat__d">See relistings and price drops.</span>
+        </div>
+        <div class="feat">
+          <span class="feat__icon" aria-hidden="true">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M5 17h14M5 17l1.5-5h11L19 17M7 11l1-3h8l1 3" />
+              <circle cx="7.5" cy="17.5" r="1.5" />
+              <circle cx="16.5" cy="17.5" r="1.5" />
+            </svg>
+          </span>
+          <span class="feat__t">Better alternatives</span>
+          <span class="feat__d">Discover cars that fit you better.</span>
+        </div>
+      </section>
+
+      <p class="trustline">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 3 4 6v6c0 4.5 3 7.5 8 9 5-1.5 8-4.5 8-9V6l-8-3Z" />
+        </svg>
+        Private. Secure. Built for smart car buyers.
+      </p>
     </main>
 
     <footer class="foot">
@@ -1246,6 +1473,11 @@
 
   <script>
     const $ = (id) => document.getElementById(id);
+
+    // Live Chrome Web Store listing — one constant feeds every [data-store-url].
+    const STORE_URL = "https://chromewebstore.google.com/detail/donedeal-copilot-%E2%80%94-car-au/adfcakaaiackhijgkefgdalkhpcbkbjf";
+    document.querySelectorAll("[data-store-url]").forEach((a) => { a.href = STORE_URL; });
+
     const KEY_STORE = "carAuditApiKey";
     const readout = $("readout");
     const scrim = $("scrim");
