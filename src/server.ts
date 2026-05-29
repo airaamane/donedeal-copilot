@@ -194,6 +194,13 @@ export async function handleRequest(
     });
   }
 
+  // Hosted privacy policy — the URL pasted into the Chrome/Edge store listings.
+  if (req.method === "GET" && url.pathname === "/privacy") {
+    return new Response(Bun.file(`${import.meta.dir}/../public/privacy.html`), {
+      headers: { "Content-Type": "text/html; charset=utf-8" },
+    });
+  }
+
   if (req.method === "POST" && url.pathname === "/audit") {
     const unauthorized = checkAuth(req);
     if (unauthorized) return unauthorized;

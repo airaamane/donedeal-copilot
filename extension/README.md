@@ -108,18 +108,37 @@ Tips:
 ## 5. Package it for distribution
 
 Both stores want a **ZIP of the extension folder's contents** (the
-`manifest.json` must be at the root of the zip, not inside a subfolder).
+`manifest.json` must be at the root of the zip, not inside a subfolder). Exclude
+the dev-only files (`make-icons.mjs`, this `README.md`, and the source artwork
+`icons/donedeal-copilot-icon.png` if present) — `config.js` **must** be included.
 
-From the repo root:
+**macOS / Linux** (from the repo root):
 
 ```bash
 cd extension
-zip -r ../donedeal-copilot-extension.zip . -x "*.DS_Store" "make-icons.mjs" "README.md"
+zip -r ../donedeal-copilot-extension.zip . \
+  -x "*.DS_Store" "make-icons.mjs" "README.md" "icons/donedeal-copilot-icon.png"
 ```
 
-That produces `donedeal-copilot-extension.zip` you can upload to either store.
-(`make-icons.mjs` and this README are dev-only and excluded; including them is
-harmless if you'd rather keep it simple.)
+**Windows (PowerShell)** — `zip` usually isn't installed, and `Compress-Archive`
+can emit backslash paths the Chrome Web Store rejects, so build entries explicitly
+(from the repo root):
+
+```powershell
+Add-Type -AssemblyName System.IO.Compression.FileSystem
+$ext = "$PWD\extension"; $out = "$PWD\donedeal-copilot-extension.zip"
+if (Test-Path $out) { Remove-Item $out }
+$files = "manifest.json","background.js","config.js","popup.html","popup.css","popup.js",
+         "icons/icon16.png","icons/icon32.png","icons/icon48.png","icons/icon128.png"
+$zip = [IO.Compression.ZipFile]::Open($out, "Create")
+foreach ($f in $files) {
+  [IO.Compression.ZipFileExtensions]::CreateEntryFromFile($zip, "$ext\$($f -replace '/','\')", $f) | Out-Null
+}
+$zip.Dispose()
+```
+
+Both produce `donedeal-copilot-extension.zip` (manifest at the root) for upload to
+either store.
 
 > Bump `"version"` in `manifest.json` for every store upload — stores reject a
 > re-upload of an existing version number.

@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Privacy Policy — DoneDeal Copilot</title>
+    <meta name="description" content="Privacy policy for the DoneDeal Copilot car-audit browser extension." />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Hanken+Grotesk:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      /* Shares the Showroom Light token palette with public/index.html so the
+       * two pages read as siblings. */
+      :root {
+        --color-paper:    oklch(97.5% 0.006 255);
+        --color-paper-2:  oklch(99.3% 0.004 255);
+        --color-rule:     oklch(90%   0.010 258);
+        --color-muted:    oklch(52%   0.022 260);
+        --color-ink-2:    oklch(34%   0.045 262);
+        --color-ink:      oklch(24%   0.060 263);
+        --color-accent:   oklch(55%   0.20  264);
+        --color-accent-glow: oklch(70% 0.14 264 / 0.07);
+
+        --font-display: "Bricolage Grotesque", "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+        --font-body:    "Hanken Grotesk", ui-sans-serif, system-ui, sans-serif;
+        --font-mono:    ui-monospace, "SF Mono", Menlo, monospace;
+
+        --rule-hair: 1px;
+        --page-gutter: clamp(1.25rem, 4vw, 3rem);
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; }
+      body {
+        min-height: 100dvh;
+        font-family: var(--font-body);
+        font-size: 1.0625rem;
+        line-height: 1.6;
+        color: var(--color-ink-2);
+        background-color: var(--color-paper);
+        background-image: radial-gradient(90% 50% at 50% -8%, var(--color-accent-glow) 0%, transparent 55%);
+        background-attachment: fixed;
+        -webkit-font-smoothing: antialiased;
+      }
+      .shell { max-width: 44rem; margin: 0 auto; padding: 1.25rem var(--page-gutter) 4rem; }
+
+      .topbar {
+        display: flex; align-items: center; justify-content: space-between;
+        gap: 1rem; padding-block: 0.5rem;
+        border-bottom: var(--rule-hair) solid var(--color-rule);
+      }
+      .wordmark {
+        text-decoration: none;
+        display: inline-flex; align-items: baseline; gap: 0.2ch;
+        font-family: var(--font-display); font-weight: 700; font-size: 1.125rem;
+        letter-spacing: -0.01em; color: var(--color-ink);
+      }
+      .wordmark b { font-weight: 700; }
+      .wordmark .dot { color: var(--color-accent); }
+      .topbar__meta { font-size: 0.8125rem; color: var(--color-muted); white-space: nowrap; }
+
+      article { padding-top: clamp(2rem, 6vw, 3.5rem); }
+      h1 {
+        margin: 0 0 0.5rem;
+        font-family: var(--font-display); font-weight: 700;
+        font-size: clamp(2rem, 4vw + 1rem, 2.75rem); line-height: 1.1;
+        letter-spacing: -0.02em; color: var(--color-ink);
+      }
+      .meta {
+        margin: 0 0 2.5rem; font-size: 0.9375rem; color: var(--color-muted);
+        display: flex; flex-wrap: wrap; gap: 0.5rem 1.25rem;
+      }
+      .meta strong { color: var(--color-ink-2); font-weight: 600; }
+
+      h2 {
+        margin: 2.25rem 0 0.75rem;
+        font-family: var(--font-display); font-weight: 600;
+        font-size: 1.375rem; letter-spacing: -0.01em; color: var(--color-ink);
+      }
+      p { margin: 0 0 1rem; }
+      ul { padding-left: 1.25rem; margin: 0 0 1rem; }
+      li { margin-bottom: 0.5rem; }
+      strong { color: var(--color-ink); font-weight: 600; }
+      a { color: var(--color-accent); text-decoration-thickness: 1px; text-underline-offset: 2px; }
+      a:hover { text-decoration-thickness: 2px; }
+      code { font-family: var(--font-mono); font-size: 0.9em; color: var(--color-ink); }
+
+      .foot {
+        margin-top: 3rem; padding-top: 1rem;
+        border-top: var(--rule-hair) solid var(--color-rule);
+        font-size: 0.8125rem; color: var(--color-muted);
+        display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+      }
+      .foot a { color: var(--color-muted); }
+    </style>
+  </head>
+  <body>
+    <div class="shell">
+      <header class="topbar">
+        <a class="wordmark" href="/">Car<b>Audit</b><span class="dot">.</span></a>
+        <span class="topbar__meta">Privacy</span>
+      </header>
+
+      <article>
+        <h1>Privacy Policy</h1>
+        <p class="meta">
+          <span><strong>Effective date:</strong> 2026-05-29</span>
+          <span><strong>Contact:</strong> <a href="mailto:airaamane.pro@gmail.com">airaamane.pro@gmail.com</a></span>
+        </p>
+
+        <p>DoneDeal Copilot (the “extension”) gives you an AI second opinion on a used-car listing you are viewing. This policy explains exactly what data the extension handles, where it goes, and what is (and isn't) stored. It is written to match what the software actually does.</p>
+
+        <h2>What the extension collects</h2>
+        <p>The extension only acts when <strong>you</strong> click its toolbar icon and run an audit. At that point it handles:</p>
+        <ul>
+          <li><strong>Your buyer profile</strong> — the preferences you enter in the popup: budget and finance, fuel and transmission, max mileage, earliest year, intended use, must-haves, and free-text notes.</li>
+          <li><strong>The listing URL</strong> — the address of the car listing you choose to audit.</li>
+          <li><strong>The listing page text</strong> — when “Send page text” is enabled (the default), the extension reads the visible text of the listing tab you are on, so the listing can be analysed even on sites that block server-side fetches. It reads this only for the listing you are actively auditing.</li>
+        </ul>
+        <p>The extension does <strong>not</strong> collect your name, email, location, browsing history, or any identifier, and it has no accounts, logins, ads, or third-party analytics or tracking.</p>
+
+        <h2>How the data is used and where it goes</h2>
+        <p>When you run an audit, your profile, the listing URL, and (if enabled) the listing page text are sent over HTTPS to the audit backend operated by the developer (<code>aimechanic.up.railway.app</code>). The backend uses that information to read and assess the listing via Google's <strong>Gemini API</strong> and returns a structured audit, which is shown in the popup.</p>
+        <ul>
+          <li>Data is sent <strong>only</strong> to that backend. It is not sold, rented, or shared with any other party.</li>
+          <li>The listing content is processed by Google's Gemini API to generate the audit. Google's handling of that data is governed by its own terms (<a href="https://ai.google.dev/gemini-api/terms" rel="noopener">Gemini API terms</a> and the <a href="https://policies.google.com/privacy" rel="noopener">Google Privacy Policy</a>).</li>
+        </ul>
+
+        <h2>What is stored</h2>
+        <ul>
+          <li><strong>In your browser (local only):</strong> your profile, your settings, and your most recent audit results are saved with the browser's local extension storage (<code>chrome.storage.local</code>) so you don't re-enter them. This never leaves your device except as part of an audit request you initiate, and you can clear it by removing the extension.</li>
+          <li><strong>On the backend:</strong> the audit service is stateless and does not store your profile. To bound usage it processes your network address (IP) transiently in memory for rate-limiting; this is not persisted. If price-history tracking is enabled, the backend may record <strong>anonymous</strong> car facts (make, model, year, mileage, price), the listing URL, and a timestamp to track a car's price across relistings. These records are not linked to you, your profile, or your identity.</li>
+        </ul>
+
+        <h2>Permissions</h2>
+        <ul>
+          <li><strong>activeTab + scripting</strong> — to read the text of the car-listing tab you are on when you ask for an audit.</li>
+          <li><strong>storage</strong> — to save your profile and settings locally.</li>
+          <li><strong>Host access</strong> (<code>donedeal.ie</code>, <code>autotrader.co.uk</code>) — to detect supported listings and read their content. The backend is called over standard web requests (CORS) and needs no host permission.</li>
+        </ul>
+
+        <h2>Data retention and your choices</h2>
+        <ul>
+          <li>Local data persists until you clear it or remove the extension.</li>
+          <li>You control what is sent: nothing leaves your device unless you click to audit a listing. You can disable “Send page text” in the extension's Advanced panel.</li>
+        </ul>
+
+        <h2>Changes</h2>
+        <p>This policy may be updated; material changes will be reflected by a new effective date at the top of this page.</p>
+
+        <h2>Contact</h2>
+        <p>Questions about this policy: <a href="mailto:airaamane.pro@gmail.com">airaamane.pro@gmail.com</a>.</p>
+      </article>
+
+      <footer class="foot">
+        <span>DoneDeal Copilot · privacy policy</span>
+        <a href="/">Back to console</a>
+      </footer>
+    </div>
+  </body>
+</html>
